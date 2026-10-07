@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>All Sports — Design System</title>
+  <meta name="description" content="Design system do All Sports. Um arquivo CSS e esta página para ver as telas do aplicativo.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%230c6e52'/%3E%3Cpath d='M16 25s6-5 6-9.4a6 6 0 1 0-12 0C10 20 16 25 16 25z' fill='white'/%3E%3Ccircle cx='16' cy='15.4' r='2.2' fill='%230c6e52'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="all-sports.css">
+  <style>
+    :root {
+      --ds-ink: #1a1c1e;
+      --ds-muted: #5c6370;
+      --ds-line: rgba(26, 28, 30, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: Manrope, "Segoe UI", system-ui, sans-serif;
+      color: var(--ds-ink);
+      background:
+        radial-gradient(900px 420px at 100% 0%, rgba(12, 110, 82, 0.06), transparent 50%),
+        #e7ebf0;
+    }
+
+    .ds-wrap {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .ds-hero {
+      background:
+        radial-gradient(700px 240px at 0% 0%, rgba(255, 255, 255, 0.16), transparent 55%),
+        #0c6e52;
+      color: #fff;
+      padding: 64px 0 40px;
+    }
+
+    .ds-hero__grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.7fr);
+      gap: 36px;
+      align-items: end;
+    }
+
+    .ds-kicker {
+      margin: 0 0 8px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #0c6e52;
+    }
+
+    .ds-kicker--light { color: #c9f3e4; }
+
+    .ds-hero h1 {
+      margin: 0;
+      font-size: clamp(44px, 6vw, 68px);
+      line-height: 0.92;
+      letter-spacing: -0.055em;
+    }
+
+    .ds-hero__lead {
+      max-width: 48ch;
+      margin: 16px 0 0;
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .ds-code {
+      margin: 0;
+      padding: 16px 18px;
+      border-radius: 8px;
+      background: #10241d;
+      color: #d7f6ea;
+      font-family: ui-monospace, sfmono-regular, menlo, consolas, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      overflow: auto;
+    }
+
+    .ds-nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(231, 235, 240, 0.9);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--ds-line);
+    }
+
+    .ds-nav ul {
+      display: flex;
+      gap: 8px;
+      list-style: none;
+      margin: 0;
+      padding: 12px 0;
+      overflow-x: auto;
+    }
+
+    .ds-nav a {
+      display: inline-flex;
+      align-items: center;
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ds-ink);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: inset 0 0 0 1px #d5dbe2;
+      white-space: nowrap;
+    }
+
+    .ds-nav a:hover { background: #f4f7f6; }
+
+    .ds-foundation { padding: 28px 0 8px; }
+
+    .ds-panel {
+      background: #fff;
+      border-radius: 12px;
+      padding: 22px;
+      margin-top: 14px;
+      box-shadow: 0 1px 2px rgba(26, 28, 30, 0.04), 0 12px 32px rgba(26, 28, 30, 0.04);
+    }
+
+    .ds-panel h3,
+    .as-docs > h3 {
+      margin: 0 0 14px;
+      font-size: 16px;
+      letter-spacing: -0.03em;
+    }
+
+    .ds-split {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 28px;
+    }
+
+    .ds-section {
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+      gap: 28px 32px;
+      align-items: start;
+      padding: 56px 0;
+      border-top: 1px solid var(--ds-line);
+    }
+
+    .ds-copy h2 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      letter-spacing: -0.045em;
+      line-height: 1;
+    }
+
+    .ds-copy p,
+    .ds-copy li {
+      color: var(--ds-muted);
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .ds-copy p { margin: 0 0 10px; }
+
+    .ds-copy ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    .ds-copy li { margin: 5px 0; }
+
+    .ds-phones {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px 20px;
+      justify-content: center;
+    }
+
+    .ds-shot {
+      margin: 0;
+      width: min(390px, 100%);
+    }
+
+    .ds-shot figcaption {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--ds-muted);
+    }
+
+    .ds-fit {
+      container-type: inline-size;
+      width: 100%;
+      aspect-ratio: 390 / 844;
+      position: relative;
+    }
+
+    .ds-device {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 390px;
+      height: 844px;
+      padding: 10px;
+      border-radius: 24px;
+      background: #121517;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 24px 50px rgba(18, 21, 23, 0.18);
+      transform-origin: top left;
+      transform: scale(calc(100cqw / 390px));
+    }
+
+    .ds-device .as-screen {
+      height: 100%;
+      border-radius: 19px;
+    }
+
+    .ds-foot {
+      padding: 28px 0 48px;
+      color: var(--ds-muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 960px) {
+      .ds-hero__grid,
+      .ds-section,
+      .ds-split { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .ds-wrap { width: min(1180px, calc(100% - 24px)); }
+      .ds-hero { padding: 40px 0 28px; }
+    }
+  </style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <circle cx="11" cy="11" r="6.25"/>
+      <path d="M16 16.2L20 20.2"/>
+    </symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M12 21s6-5.1 6-9.6A6 6 0 0 0 6 11.4C6 15.9 12 21 12 21z"/>
+      <circle cx="12" cy="11.2" r="2"/>
+    </symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <rect x="4" y="5.5" width="16" height="14" rx="2"/>
+      <path d="M8 3.8v4M16 3.8v4M4 10h16"/>
+    </symbol>
+    <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <circle cx="9" cy="9" r="2.5"/>
+      <path d="M4.6 18.2c.6-2.5 2.3-3.8 4.4-3.8s3.8 1.3 4.4 3.8"/>
+      <circle cx="16.2" cy="9.4" r="2"/>
+      <path d="M15.2 14.6c1.5.3 2.7 1.2 3.4 3"/>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <path d="M12 5v14M5 12h14"/>
+    </symbol>
+    <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <path d="M7 7l10 10M17 7L7 17"/>
+    </symbol>
+    <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="7" cy="12" r="2.1"/>
+      <circle cx="17" cy="7" r="2.1"/>
+      <circle cx="17" cy="17" r="2.1"/>
+      <path d="M9 11.2l6-3.2M9 12.8l6 3.2"/>
+    </symbol>
+    <symbol id="i-star" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M12 3.6l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 8.9l5-.7L12 3.6z"/>
+    </symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <circle cx="12" cy="12" r="7.25"/>
+      <path d="M12 8v4.4l2.8 1.8"/>
+    </symbol>
+    <symbol id="i-locate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M12 3.5V6M12 18v2.5M3.5 12H6M18 12h2.5"/>
+    </symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M12 4.5l8 4-8 4-8-4 8-4z"/>
+      <path d="M4 12.2l8 4 8-4M4 16l8 4 8-4"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12.5l4.2 4.2L19 7.2"/>
+    </symbol>
+    <symbol id="i-nav" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M4.2 11.15L19.6 4.7l-5.7 14.7-2.15-6.15-7.55-2.1z"/>
+    </symbol>
+    <symbol id="i-bookmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M7 4.5h10a1 1 0 0 1 1 1V20l-6-3.2L6 20V5.5a1 1 0 0 1 1-1z"/>
+    </symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.5 5.5L8 12l6.5 6.5"/>
+    </symbol>
+    <symbol id="i-chevron-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.5 5.5L16 12l-6.5 6.5"/>
+    </symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <circle cx="12" cy="8.5" r="3"/>
+      <path d="M5.5 19c1-3.1 3.2-4.7 6.5-4.7s5.5 1.6 6.5 4.7"/>
+    </symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 4.5h8v4.8a4 4 0 0 1-8 0V4.5z"/>
+      <path d="M8 6.5H5.8A2.3 2.3 0 0 0 8 10.2M16 6.5h2.2A2.3 2.3 0 0 1 16 10.2M12 13.3V16M9.2 19.5h5.6"/>
+    </symbol>
+    <symbol id="i-ticket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M4 8.2A2 2 0 0 0 6 6.5h12a2 2 0 0 0 2 1.7v2a2 2 0 0 1 0 3.6v2A2 2 0 0 1 18 17.5H6a2 2 0 0 1-2-1.7v-2a2 2 0 0 0 0-3.6v-2z"/>
+      <path d="M12 7v10" stroke-dasharray="1.6 2.2"/>
+    </symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2"/>
+      <path d="M4 7.2l8 6 8-6"/>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <rect x="6" y="10.5" width="12" height="8.5" rx="2"/>
+      <path d="M8.5 10.5V8.2a3.5 3.5 0 0 1 7 0v2.3"/>
+    </symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M2.8 12S6.2 6.8 12 6.8 21.2 12 21.2 12 17.8 17.2 12 17.2 2.8 12 2.8 12z"/>
+      <circle cx="12" cy="12" r="2.2"/>
+    </symbol>
+    <symbol id="i-repeat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 7.2H8.8A3.3 3.3 0 0 0 5.5 10.5V13"/>
+      <path d="M7 16.8h8.2a3.3 3.3 0 0 0 3.3-3.3V11"/>
+      <path d="M14.6 4.6L17.4 7.2 14.6 9.8M9.4 14.2L6.6 16.8 9.4 19.4"/>
+    </symbol>
+    <symbol id="i-ball" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="6.5"/>
+      <path d="M12 5.5v13M8.2 7.6l7.6 8.8M15.8 7.6l-7.6 8.8"/>
+    </symbol>
+    <symbol id="i-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M5 20V8.2L12 5l7 3.2V20"/>
+      <path d="M10 20v-5.5h4V20"/>
+    </symbol>
+    <symbol id="i-status" viewBox="0 0 62 14">
+      <rect x="0" y="8" width="3" height="5" rx="0.6" fill="currentColor"/>
+      <rect x="5" y="5.5" width="3" height="7.5" rx="0.6" fill="currentColor"/>
+      <rect x="10" y="3" width="3" height="10" rx="0.6" fill="currentColor"/>
+      <rect x="15" y="1" width="3" height="12" rx="0.6" fill="currentColor"/>
+      <rect x="40" y="2" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/>
+      <rect x="58.4" y="5" width="1.5" height="4" rx="0.5" fill="currentColor"/>
+      <rect x="42.2" y="4.1" width="12" height="5.8" rx="1" fill="currentColor"/>
+    </symbol>
+  </svg>
+
+  <header class="ds-hero">
+    <div class="ds-wrap ds-hero__grid">
+      <div>
+        <p class="ds-kicker ds-kicker--light">Design system · aplicativo mobile</p>
+        <h1>All Sports</h1>
+        <p class="ds-hero__lead">Um mapa para quem pratica e para quem organiza. A pessoa acha um local, um grupo recorrente ou um campeonato e se candidata. O organizador cria o evento e responde os pedidos.</p>
+      </div>
+      <pre class="ds-code">&lt;link rel="stylesheet"
+      href="all-sports.css"&gt;
+
+&lt;div class="as-screen"&gt;
+  …
+&lt;/div&gt;</pre>
+    </div>
+  </header>
+
+  <nav class="ds-nav" aria-label="Seções">
+    <div class="ds-wrap">
+      <ul>
+        <li><a href="#fundamentos">Fundamentos</a></li>
+        <li><a href="#conta">Conta</a></li>
+        <li><a href="#mapa">Mapa</a></li>
+        <li><a href="#eventos">Eventos</a></li>
+        <li><a href="#organizar">Organizar</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="ds-wrap ds-foundation" id="fundamentos">
+      <p class="ds-kicker">Base</p>
+      <h2 class="as-title" style="font-size:32px">Fundamentos</h2>
+      <p class="as-muted" style="max-width:62ch;margin-top:8px">Cores, tipo, espaço e peças. As telas de baixo só combinam estas classes. O arquivo do sistema é o <strong>all-sports.css</strong>.</p>
+
+      <div class="ds-panel">
+        <div class="as-docs">
+          <h3>Cor</h3>
+          <div class="as-swatches">
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#0c6e52"></span>Campo <code>#0C6E52</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#1a73e8"></span>Local <code>#1A73E8</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#e23b32"></span>Evento <code>#E23B32</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#1a1c1e"></span>Tinta <code>#1A1C1E</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#5c6370"></span>Secundária <code>#5C6370</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#f5f6f7"></span>Fundo <code>#F5F6F7</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#ffffff"></span>Superfície <code>#FFFFFF</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#e5f5ef"></span>Tint campo <code>#E5F5EF</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#0d8a52"></span>Aberto <code>#0D8A52</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#c4322b"></span>Erro <code>#C4322B</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#e06a12"></span>Corrida <code>#E06A12</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#d9a106"></span>Vôlei <code>#D9A106</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#d24b32"></span>Basquete <code>#D24B32</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#7a4eab"></span>Bike <code>#7A4EAB</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#e5efe4"></span>Mapa <code>#E5EFE4</code></div>
+            <div class="as-swatch"><span class="as-swatch__chip" style="--c:#b7d4ea"></span>Água <code>#B7D4EA</code></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-split">
+        <div class="ds-panel">
+          <div class="as-docs">
+            <h3>Tipo</h3>
+            <div class="as-type">
+              <p class="as-display">Onde jogar hoje</p>
+              <p class="as-title">Pelada de quinta</p>
+              <p class="as-body">Manrope em 15px. O texto corrido cabe numa mão e continua legível no mapa.</p>
+              <p class="as-meta">1,2 km · Hoje 19:00 · 6 vagas</p>
+              <p class="as-kicker">Futebol society</p>
+            </div>
+            <h3 style="margin-top:22px">Espaço</h3>
+            <div class="as-spaces">
+              <div class="as-space"><i style="--s:4px"></i>4</div>
+              <div class="as-space"><i style="--s:8px"></i>8</div>
+              <div class="as-space"><i style="--s:12px"></i>12</div>
+              <div class="as-space"><i style="--s:16px"></i>16</div>
+              <div class="as-space"><i style="--s:24px"></i>24</div>
+              <div class="as-space"><i style="--s:32px"></i>32</div>
+              <div class="as-space"><i style="--s:40px"></i>40</div>
+            </div>
+          </div>
+        </div>
+        <div class="ds-panel">
+          <div class="as-docs">
+            <h3>Pins</h3>
+            <div class="as-docs-map">
+              <div class="as-map" aria-hidden="true">
+                <span class="as-map__water"></span>
+                <span class="as-map__park"></span>
+                <span class="as-map__road as-map__road--h"></span>
+                <span class="as-map__road as-map__road--v"></span>
+                <span class="as-map__name" style="--x:8%;--y:28%">Parque das Águas</span>
+              </div>
+              <span class="as-pinwrap" style="--x:34%;--y:58%">
+                <span class="as-pinwrap__label">Pelada 19h</span>
+                <span class="as-pin as-pin--event"><svg class="as-icon"><use href="#i-ball"/></svg></span>
+              </span>
+              <span class="as-pinwrap" style="--x:68%;--y:42%">
+                <span class="as-pinwrap__label">Arena Leste</span>
+                <span class="as-pin as-pin--place"><svg class="as-icon"><use href="#i-building"/></svg></span>
+              </span>
+              <span class="as-you" style="--x:48%;--y:70%"></span>
+            </div>
+            <p class="as-muted" style="margin-top:10px">Vermelho marca evento. Azul marca local. O ponto azul é a pessoa.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-panel">
+        <div class="as-docs">
+          <h3>Botões, campos, filtros e selos</h3>
+          <div class="as-cluster" style="margin-bottom:16px">
+            <button class="as-btn as-btn--primary" type="button">Quero participar</button>
+            <button class="as-btn as-btn--secondary" type="button">Como chegar</button>
+            <button class="as-btn as-btn--ghost" type="button">Ver lista</button>
+            <button class="as-btn as-btn--danger as-btn--sm" type="button">Recusar</button>
+            <button class="as-btn as-btn--primary is-disabled" type="button">Lotado</button>
+          </div>
+          <div class="as-pair" style="max-width:640px;margin-bottom:16px">
+            <label class="as-field">
+              <span class="as-field__label">E-mail</span>
+              <input class="as-input" type="email" value="ana.lima@email.com">
+            </label>
+            <label class="as-field">
+              <span class="as-field__label">Busca</span>
+              <span class="as-search">
+                <svg class="as-icon" aria-hidden="true"><use href="#i-search"/></svg>
+                <input class="as-search__input" type="search" placeholder="Esporte, local ou pelada">
+              </span>
+            </label>
+          </div>
+          <div class="as-chips" style="margin-bottom:12px">
+            <button class="as-chip is-active" type="button">Agora</button>
+            <button class="as-chip" type="button"><i class="as-dot as-dot--futebol"></i>Futebol</button>
+            <button class="as-chip" type="button"><i class="as-dot as-dot--corrida"></i>Corrida</button>
+            <button class="as-chip" type="button">Grátis</button>
+            <button class="as-chip as-chip--pick is-active" type="button"><svg class="as-icon as-icon--sm"><use href="#i-check"/></svg>Vôlei</button>
+          </div>
+          <div class="as-cluster">
+            <span class="as-badge as-badge--hoje">Hoje</span>
+            <span class="as-badge as-badge--gratis">Grátis</span>
+            <span class="as-badge as-badge--preco">R$ 20</span>
+            <span class="as-badge as-badge--lotado">Lotado</span>
+            <span class="as-badge as-badge--ok">Confirmada</span>
+            <span class="as-badge as-badge--wait">Pendente</span>
+            <span class="as-badge as-badge--campeonato">Campeonato</span>
+            <span class="as-badge as-badge--live">Aberto agora</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-split">
+        <div class="ds-panel">
+          <div class="as-docs">
+            <h3>Cartão e linha de evento</h3>
+            <div class="as-cluster" style="align-items:stretch">
+              <a class="as-event-card" href="#detalhe">
+                <div class="as-media as-media--futebol"><span class="as-badge as-badge--hoje">Hoje</span></div>
+                <div class="as-event-card__body">
+                  <strong>Pelada de quinta</strong>
+                  <span>Arena Leste · 1,2 km</span>
+                  <span>19:00 · 6 vagas · Grátis</span>
+                </div>
+              </a>
+            </div>
+            <div style="margin-top:12px;border:1px solid var(--as-line);border-radius:8px;overflow:hidden">
+              <a class="as-event-row" href="#detalhe">
+                <span class="as-event-row__when"><strong>19:00</strong>Hoje</span>
+                <span class="as-event-row__body">
+                  <strong><i class="as-dot as-dot--futebol"></i>Pelada de quinta</strong>
+                  <span>Futebol · Arena Leste · 1,2 km</span>
+                </span>
+                <span class="as-badge as-badge--gratis">Grátis</span>
+              </a>
+              <a class="as-event-row" href="#eventos">
+                <span class="as-event-row__when"><strong>09:00</strong>Sáb</span>
+                <span class="as-event-row__body">
+                  <strong><i class="as-dot as-dot--volei"></i>Aberto de vôlei de areia</strong>
+                  <span>Campeonato · Areia do Lago · 3,4 km</span>
+                </span>
+                <span class="as-badge as-badge--preco">R$ 20</span>
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="ds-panel">
+          <div class="as-docs">
+            <h3>Classificação</h3>
+            <p class="as-muted" style="margin-bottom:8px">Cada item fica em uma linha: posição, nome e pontos.</p>
+            <div class="as-rank"><span class="as-rank__pos">1</span><span class="as-rank__name">Lima / Souza</span><span class="as-rank__pts">18 pts</span></div>
+            <div class="as-rank"><span class="as-rank__pos">2</span><span class="as-rank__name">Reis / Kato</span><span class="as-rank__pts">15 pts</span></div>
+            <div class="as-rank"><span class="as-rank__pos">3</span><span class="as-rank__name">Nunes / Dias</span><span class="as-rank__pts">12 pts</span></div>
+            <h3 style="margin-top:18px">Pessoa e vazio</h3>
+            <div class="as-person">
+              <span class="as-avatar">RM</span>
+              <span class="as-person__text"><strong>Rafael Mendes</strong><span>Organiza a pelada</span></span>
+              <button class="as-btn as-btn--primary as-btn--sm" type="button">Aceitar</button>
+            </div>
+            <div class="as-empty" style="margin-top:12px">
+              <strong>Nada neste raio</strong>
+              <p>Aumente a distância ou crie o próprio evento.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ds-wrap">
+      <section class="ds-section" id="conta">
+        <div class="ds-copy">
+          <p class="ds-kicker">Conta</p>
+          <h2>Entrar e criar conta</h2>
+          <p>Atleta e organizador usam a mesma conta. Dá para praticar e também publicar evento.</p>
+          <ul>
+            <li>Entrar pede e-mail e senha.</li>
+            <li>Na criação, a pessoa diz se veio praticar ou organizar.</li>
+            <li>Os esportes são um filtro dela, não da conta.</li>
+          </ul>
+        </div>
+        <div class="ds-phones">
+          <figure class="ds-shot">
+            <div class="ds-fit">
+              <div class="ds-device">
+                <div class="as-screen" id="entrar">
+                  <div class="as-login__map" aria-hidden="true">
+                    <div class="as-map">
+                      <span class="as-map__water"></span>
+                      <span class="as-map__park"></span>
+                      <span class="as-map__road as-map__road--d"></span>
+                      <span class="as-map__road as-map__road--h"></span>
+                      <span class="as-map__block" style="--x:46%;--y:18%"></span>
+                      <span class="as-map__block as-map__block--lg" style="--x:62%;--y:8%"></span>
+                    </div>
+                  </div>
+                  <div class="as-app" style="background:transparent">
+                    <div class="as-statusbar"><time>18:41</time><svg class="as-icon as-icon--status" aria-hidden="true"><use href="#i-status"/></svg></div>
+                    <div class="as-scroll">
+                      <div style="padding:12px 24px 36px;display:flex;flex-direction:column;gap:22px">
+                        <div style="margin-top:36px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px">
+                          <div class="as-logo as-logo--lg">
+                            <svg class="as-logo__mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="5" fill="#0c6e52"/><path d="M16 25.2s6.4-5.2 6.4-9.8a6.4 6.4 0 1 0-12.8 0c0 4.6 6.4 9.8 6.4 9.8z" fill="#fff"/><circle cx="16" cy="15.2" r="2.4" fill="#0c6e52"/></svg>
+                            All Sports
+                          </div>
+                          <p class="as-lead">Entre para achar onde jogar, um grupo ou um campeonato perto de você.</p>
+                        </div>
+                        <div class="as-stack">
+                          <label class="as-field">
+                            <span class="as-field__label">E-mail</span>
+                            <input class="as-input" type="email" autocomplete="username" value="ana.lima@email.com">
+                          </label>
+                          <label class="as-field">
+                            <span class="as-field__labelrow"><span>Senha</span><button class="as-textlink" type="button">Esqueci</button></span>
+                            <span class="as-field__control">
+                              <input class="as-input as-input--icon" type="password" autocomplete="current-password" value="senha-demo">
+                              <button class="as-iconbtn as-iconbtn--infield" type="button" aria-label="Mostrar senha"><svg class="as-icon"><use href="#i-eye"/></svg></button>
+                            </span>
+                          </label>
+                        </div>
+                        <a class="as-btn as-btn--primary as-btn--block" href="#mapa">Entrar</a>
+                        <p class="as-meta" style="text-align:center">Ainda não tem conta? <a class="as-textlink" href="#criar-conta">Criar conta</a></p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="as-home" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+            <figcaption>Entrar</figcaption>
+          </figure>
+
+          <figure class="ds-shot">
+            <div class="ds-fit">
+              <div class="ds-device">
+                <div class="as-screen" id="criar-conta">
+                  <div class="as-app" style="background:var(--as-surface)">
+                    <div class="as-statusbar"><time>18:41</time><svg class="as-icon as-icon--status" aria-hidden="true"><use href="#i-status"/></svg></div>
+                    <header class="as-header">
+                      <a class="as-iconbtn" href="#entrar" aria-label="Voltar"><svg class="as-icon"><use href="#i-chevron"/></svg></a>
+                      <h3 class="as-title">Criar conta</h3>
+                    </header>
+                    <div class="as-scroll">
+                      <div class="as-form">
+                        <div class="as-seg" role="tablist" aria-label="Como você vai usar">
+                          <button class="as-seg__btn is-active" type="button">Praticar</button>
+                          <button class="as-seg__btn" type="button">Organizar</button>
+                        </div>
+                        <p class="as-help">Você pode organizar eventos depois, sem criar outra conta.</p>
+                        <label class="as-field">
+                          <span class="as-field__label">Nome</span>
+                          <input class="as-input" type="text" value="Ana Lima">
+                        </label>
+                        <label class="as-field">
+                          <span class="as-field__label">E-mail</span>
+                          <input class="as-input" type="email" value="ana.lima@email.com">
+                        </label>
+                        <label class="as-field">
+                          <span class="as-field__label">Senha</span>
+                          <input class="as-input" type="password" value="senha-demo">
+                        </label>
+                        <div class="as-field">
+                          <span class="as-field__label">Esportes</span>
+                          <div class="as-chips as-chips--wrap">
+                            <button class="as-chip as-chip--pick" type="button">Futebol</button>
+                            <button class="as-chip as-chip--pick is-active" type="button">Corrida</button>
+                            <button class="as-chip as-chip--pick is-active" type="button">Vôlei</button>
+                            <button class="as-chip as-chip--pick" type="button">Bike</button>
+                            <button class="as-chip as-chip--pick" type="button">Basquete</button>
+                            <button class="as-chip as-chip--pick" type="button">Natação</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="as-dock">
+                      <a class="as-btn as-btn--primary as-btn--block" href="#mapa">Criar conta</a>
+                    </div>
+                  </div>
+                  <div class="as-home" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+            <figcaption>Criar conta</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="ds-section" id="mapa">
+        <div class="ds-copy">
+          <p class="ds-kicker">Descobrir</p>
+          <h2>Mapa</h2>
+          <p>A tela principal é o mapa. A busca flutua em cima. Os filtros ficam na linha de baixo, separados da navegação.</p>
+          <ul>
+            <li>Pin vermelho é evento. Pin azul é local.</li>
+            <li>A sheet de baixo mostra o que está perto, sem cobrir a busca.</li>
+            <li>No local, a sheet sobe e o mapa continua visível no topo.</li>
+          </ul>
+        </div>
+        <div class="ds-phones">
+          <figure class="ds-shot">
+            <div class="ds-fit">
+              <div class="ds-device">
+                <div class="as-screen">
+                  <div class="as-statusbar as-statusbar--overlay"><time>18:41</time><svg class="as-icon as-icon--status" aria-hidden="true"><use href="#i-status"/></svg></div>
+                  <div class="as-stage">
+                    <div class="as-map" aria-hidden="true">
+                      <span class="as-map__water"></span>
+                      <span class="as-map__park"></span>
+                      <span class="as-map__park as-map__park--south"></span>
+                      <span class="as-map__road as-map__road--d"></span>
+                      <span class="as-map__road as-map__road--h"></span>
+                      <span class="as-map__road as-map__road--v"></span>
+                      <span class="as-map__block" style="--x:30%;--y:22%"></span>
+                      <span class="as-map__block as-map__block--lg" style="--x:68%;--y:34%"></span>
+                      <span class="as-map__block" style="--x:42%;--y:36%"></span>
+                      <span class="as-map__block" style="--x:16%;--y:48%"></span>
+                      <span class="as-map__name" style="--x:5%;--y:27%">Parque das Águas</span>
+                      <span class="as-map__name as-map__name--road" style="--x:2%;--y:49%">Av. do Esporte</span>
+                    </div>
+                    <a class="as-pinwrap" style="--x:46%;--y:50%" href="#detalhe">
+                      <span class="as-pinwrap__label">Pelada 19h</span>
+                      <span class="as-pin as-pin--event"><svg class="as-icon"><use href="#i-ball"/></svg></span>
+                    </a>
+                    <a class="as-pinwrap" style="--x:18%;--y:40%" href="#eventos">
+                      <span class="as-pinwrap__label">Giro 6:30</span>
+                      <span class="as-pin as-pin--event"><svg class="as-icon"><use href="#i-ball"/></svg></span>
+                    </a>
+                    <a class="as-pinwrap" style="--x:73%;--y:38%" href="#local">
+                      <span class="as-pinwrap__label">Arena Leste</span>
+                      <span class="as-pin as-pin--place"><svg class="as-icon"><use href="#i-building"/></svg></span>
+                    </a>
+                    <span class="as-you" style="--x:58%;--y:46%"></span>
+                  </div>
+                  <div class="as-maptools">
+                    <button class="as-fab" type="button" aria-label="Camadas do mapa"><svg class="as-icon"><use href="#i-layers"/></svg></button>
+                  </div>
+                  <button class="as-fab as-locate" type="button" aria-label="Centralizar em você"><svg class="as-icon" style="color:var(--as-location)"><use href="#i-locate"/></svg></button>
+                  <header class="as-floathead">
+                    <div class="as-search" role="search">
+                      <svg class="as-icon" aria-hidden="true"><use href="#i-search"/></svg>
+                      <input class="as-search__input" type="search" placeholder="Esporte, local ou pelada" aria-label="Buscar">
+                      <a class="as-avatar as-avatar--sm" href="#perfil">AL</a>
+                    </div>
+                    <div class="as-chips as-chips--pad" aria-label="Filtros">
+                      <button class="as-chip is-active" type="button">Agora</button>
+                      <button class="as-chip" type="button"><i class="as-dot as-dot--futebol"></i>Futebol</button>
+                      <button class="as-chip" type="button"><i class="as-dot as-dot--corrida"></i>Corrida</button>
+                      <button class="as-chip" type="button"><i class="as-dot as-dot--volei"></i>Vôlei</button>
+                      <button class="as-chip" type="button">Grátis</button>
+                      <button class="as-chip" type="button">Campeonato</button>
+                    </div>
+                  </header>
+                  <section class="as-sheet as-sheet--peek" aria-label="Perto de você">
+                    <div class="as-handle"></div>
+                    <div class="as-sheet__head">
+                      <h3 class="as-subtitle">Perto de você</h3>
+                      <a class="as-textlink" href="#eventos">Ver lista</a>
+                    </div>
+                    <div class="as-carousel">
+                      <a class="as-event-card" href="#detalhe">
+                        <div class="as-media as-media--futebol"><span class="as-badge as-badge--hoje">Hoje</span></div>
+                        <div class="as-event-card__body">
+                          <strong>Pelada de quinta</strong>
+                          <span>Arena Leste · 1,2 km</span>
+                          <span>19:00 · 6 vagas · Grátis</span>
+                        </div>
+                      </a>
+                      <a class="as-event-card" href="#eventos">
+                        <div class="as-media as-media--corrida"><span class="as-badge as-badge--gratis">Grupo</span></div>
+                        <div class="as-event-card__body">
+                          <strong>Giro do parque</strong>
+                          <span>Parque das Águas · 800 m</span>
+                          <span>Amanhã · 6:30</span>
+                        </div>
+                      </a>
+                      <a class="as-event-card" href="#eventos">
+                        <div class="as-media as-media--volei"><span class="as-badge as-badge--campeonato">Copa</span></div>
+                        <div class="as-event-card__body">
+                          <strong>Aberto de vôlei de areia</strong>
+                          <span>Areia do Lago · 3,4 km</span>
+                          <span>Sáb · 9:00 · R$ 20</span>
+                        </div>
+                      </a>
+                    </div>
+                  </section>
+                  <nav class="as-tabbar as-tabbar--overlay" aria-label="Principal">
+                    <a class="as-tab is-active" href="#mapa" aria-current="page"><svg class="as-icon"><use href="#i-pin"/></svg>Mapa</a>
+                    <a class="as-tab" href="#eventos"><svg class="as-icon"><use href="#i-calendar"/></svg>Eventos</a>
+                    <a class="as-tab as-tab--create" href="#criar" aria-label="Criar evento"><svg class="as-icon"><use href="#i-plus"/></svg></a>
+                    <a class="as-tab" href="#perfil"><svg class="as-icon"><use href="#i-ticket"/></svg>Inscrições</a>
+                    <a class="as-tab" href="#perfil"><svg class="as-icon"><use href="#i-user"/></svg>Perfil</a>
+                  </nav>
+                  <div class="as-home" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+            <figcaption>Descobrir no mapa</figcaption>
+          </figure>
+
+          <figure class="ds-shot">
+            <div class="ds-fit">
+              <div class="ds-device">
+                <div class="as-screen" id="local">
+                  <div class="as-statusbar as-statusbar--overlay"><time>18:41</time><svg class="as-icon as-icon--status" aria-hidden="true"><use href="#i-status"/></svg></div>
+                  <div class="as-stage">
+                    <div class="as-map" aria-hidden="true">
+                      <span class="as-map__water"></span>
+                      <span class="as-map__park"></span>
+                      <span class="as-map__road as-map__road--d"></span>
+                      <span class="as-map__road as-map__road--v"></span>
+                      <span class="as-map__block as-map__block--lg" style="--x:18%;--y:6%"></span>
+                      <span class="as-map__name" style="--x:8%;--y:2%">Parque das Águas</span>
+                    </div>
+                    <span class="as-pinwrap is-selected" style="--x:48%;--y:16%">
+                      <span class="as-pin as-pin--place"><svg class="as-icon"><use href="#i-building"/></svg></span>
+                    </span>
+                  </div>
+                  <section class="as-sheet as-sheet--place" aria-label="Arena Leste">
+                    <div class="as-handle"></div>
+                    <div class="as-sheet__tools">
+                      <a class="as-iconbtn" href="#mapa" aria-label="Fechar"><svg class="as-icon"><use href="#i-close"/></svg></a>
+                      <button class="as-iconbtn" type="button" aria-label="Compartilhar"><svg class="as-icon"><use href="#i-share"/></svg></button>
+                    </div>
+                    <div class="as-scroll">
+                      <div class="as-section" style="padding-top:0">
+                        <p class="as-kicker">Futebol society</p>
+                        <h3 class="as-title" style="margin-top:4px">Arena Leste</h3>
+                        <p class="as-oneline" style="margin-top:6px">
+                          <span class="as-rating"><svg class="as-icon"><use href="#i-star"/></svg>4,6</span>
+                          <span class="as-muted">(86)</span>
+                          <span class="as-open">Aberto</span>
+                          <span class="as-muted">· fecha 22:00</span>
+                        </p>
+                        <p class="as-muted" style="margin-top:4px">350 m · Rua do Campo, 120</p>
+                      </div>
+                      <div class="as-actions">
+                        <button class="as-action as-action--go" type="button"><span class="as-action__circle"><svg class="as-icon"><use href="#i-nav"/></svg></span>Como chegar</button>
+                        <button class="as-action" type="button"><span class="as-action__circle"><svg class="as-icon"><use href="#i-bookmark"/></svg></span>Salvar</button>
+                        <a class="as-action" href="#eventos"><span class="as-action__circle"><svg class="as-icon"><use href="#i-calendar"/></svg></span>Eventos</a>
+                        <button class="as-action" type="button"><span class="as-action__circle"><svg class="as-icon"><use href="#i-share"/></svg></span>Enviar</button>
+                      </div>
+                      <div class="as-photos">
+                        <div class="as-media as-media--futebol"></div>
+                        <div class="as-media as-media--basquete"></div>
+                        <div class="as-media as-media--corrida"></div>
+                      </div>
+                      <div class="as-divider" style="margin-top:12px"></div>
+                      <div class="as-section">
+                        <h4 class="as-section__title">Próximos neste local</h4>
+                        <a class="as-event-row" href="#detalhe" style="padding-left:0;padding-right:0;border-bottom:0">
+                          <span class="as-event-row__when"><strong>19:00</strong>Hoje</span>
+                          <span class="as-event-row__body">
+                            <strong>Pelada de quinta</strong>
+                            <span>6 vagas · intermediário</span>
+                          </span>
+                          <span class="as-badge as-badge--gratis">Grátis</span>
+                        </a>
+                      </div>
+                      <div class="as-divider"></div>
+                      <div class="as-section">
+                        <h4 class="as-section__title">Copa Arena · grupos</h4>
+                        <div class="as-rank"><span class="as-rank__pos">1</span><span class="as-rank__name">Lima / Souza</span><span class="as-rank__pts">18 pts</span></div>
+                        <div class="as-rank"><span class="as-rank__pos">2</span><span class="as-rank__name">Reis / Kato</span><span class="as-rank__pts">15 pts</span></div>
+                        <div class="as-rank"><span class="as-rank__pos">3</span><span class="as-rank__name">Nunes / Dias</span><span class="as-rank__pts">12 pts</span></div>
+                      </div>
+                    </div>
+                  </section>
+                  <nav class="as-tabbar as-tabbar--overlay" aria-label="Principal">
+                    <a class="as-tab is-active" href="#mapa" aria-current="page"><svg class="as-icon"><use href="#i-pin"/></svg>Mapa</a>
+                    <a class="as-tab" href="#eventos"><svg class="as-icon"><use href="#i-calendar"/></svg>Eventos</a>
+                    <a class="as-tab as-tab--create" href="#criar" aria-label="Criar evento"><svg class="as-icon"><use href="#i-plus"/></svg></a>
+                    <a class="as-tab" href="#perfil"><svg class="as-icon"><use href="#i-ticket"/></svg>Inscrições</a>
+                    <a class="as-tab" href="#perfil"><svg class="as-icon"><use href="#i-user"/></svg>Perfil</a>
+                  </nav>
+                  <div class="as-home" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+            <figcaption>Local selecionado</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="ds-section" id="eventos">
+        <div class="ds-copy">
+          <p class="ds-kicker">Participar</p>
+          <h2>Eventos</h2>
+          <p>A lista é o mesmo recorte do mapa, em linhas. O detalhe deixa o mapa aparecer atrás da sheet. A candidatura vai para o organizador aceitar.</p>
+          <ul>
+            <li>Filtros numa linha. A barra de baixo é outra.</li>
+            <li>Cada linha guarda horário, nome, local e o selo na mesma faixa.</li>
+            <li>Grátis ou pago aparece antes do pedido de vaga.</li>
+          </ul>
+        </div>
+        <div class="ds-phones">
+          <figure class="ds-shot">
+            <div class="ds-fit">
+              <div class="ds-device">
+                <div class="as-screen">
+                  <div class="as-app" style="background:var(--as-surface)">
+                    <div class="as-statusbar"><time>18:41</time><svg class="as-icon as-icon--status" aria-hidden="true"><use href="#i-status"/></svg></div>
+                    <header class="as-header">
+                      <h3 class="as-title">Eventos</h3>
+                    </header>
+                    <div style="padding:0 16px 10px">
+                      <div class="as-seg" aria-label="Recorte">
+                        <button class="as-seg__btn is-active" type="button">Perto</button>
+                        <button class="as-seg__btn" type="button">Semana</button>
+                        <button class="as-seg__btn" type="button">Copas</button>
+                      </div>
+                    </div>
+                    <div class="as-chips as-chips--pad">
+                      <button class="as-chip is-active" type="button">Agora</button>
+                      <button class="as-chip" type="button"><i class="as-dot as-dot--futebol"></i>Futebol</button>
+                      <button class="as-chip" type="button"><i class="as-dot as-dot--corrida"></i>Corrida</button>
+                      <button class="as-chip" type="button">Grátis</button>
+                    </div>
+                    <div class="as-scroll">
+                      <a class="as-event-row" href="#detalhe">
+                        <span class="as-event-row__when"><strong>19:00</strong>Hoje</span>
+                        <span class="as-event-row__body">
+                          <strong><i class="as-dot as-dot--futebol"></i>Pelada de quinta</strong>
+                          <span>Arena Leste · 1,2 km · 6 vagas</span>
+                        </span>
+                        <span class="as-badge as-badge--gratis">Grátis</span>
+                      </a>
+                      <a class="as-event-row" href="#gerenciar">
+                        <span class="as-event-row__when"><strong>06:30</strong>Amanhã</span>
+                        <span class="as-event-row__body">
+                          <strong><i class="as-dot as-dot--corrida"></i>Giro do parque</strong>
+                          <span>Parque das Águas · 800 m · 5 km</span>
+                        </span>
+                        <span class="as-badge as-badge--ok">Organiza</span>
+                      </a>
+                      <a class="as-event-row" href="#eventos">
+                        <span class="as-event-row__when"><strong>18:00</strong>Sex</span>
+                        <span class="as-event-row__body">
+                          <strong><i class="as-dot as-dot--basquete"></i>Basquete 3x3</strong>
+                          <span>Ginásio do Centro · 2,1 km</span>
+                        </span>
+                        <span class="as-badge as-badge--preco">R$ 10</span>
+                      </a>
+                      <a class="as-event-row" href="#eventos">
+                        <span class="as-event-row__when"><strong>09:00</strong>Sáb</span>
+                        <span class="as-event-row__body">
+                          <strong><i class="as-dot as-dot--volei"></i>Aberto de vôlei de areia</strong>
+                          <span>Areia do Lago · 3,4 km · dupla</span>
+                        </span>
+                        <span class="as-badge as-badge--campeonato">Copa</span>
+                      </a>
+                      <a class="as-event-row" href="#eventos">
+                        <span class="as-event-row__when"><strong>20:00</strong>Qua</span>
+                        <span class="as-event-row__body">
+                          <strong><i class="as-dot as-dot--luta"></i>Aula aberta de judô</strong>
+                          <span>Ginásio do Centro · iniciante</span>
+                        </span>
+                        <span class="as-badge as-badge--lotado">Lotado</span>
+                      </a>
+                      <a class="as-event-row" href="#eventos">
+                        <span class="as-event-row__when"><strong>07:00</strong>Dom</span>
+                        <span class="as-event-row__body">
+                          <strong><i class="as-dot as-dot--bike"></i>Pedal da orla</strong>
+                          <span>Grupo recorrente · 18 km</span>
+                        </span>
+                        <span class="as-badge as-badge--gratis">Grátis</span>
+                      </a>
+                    </div>
+                    <nav class="as-tabbar" aria-label="Principal">
+                      <a class="as-tab" href="#mapa"><svg class="as-icon"><use href="#i-pin"/></svg>Mapa</a>
+                      <a class="as-tab is-active" href="#eventos" aria-current="page"><svg class="as-icon"><use href="#i-calendar"/></svg>Eventos</a>
+                      <a class="as-tab as-tab--create" href="#criar" aria-label="Criar evento"><svg class="as-icon"><use href="#i-plus"/></svg></a>
+                      <a class="as-tab" href="#perfil"><svg class="as-icon"><use href="#i-ticket"/></svg>Inscrições</a>
+                      <a class="as-tab" href="#perfil"><svg class="as-icon"><use href="#i-user"/></svg>Perfil</a>
+                    </nav>
+                  </div>
+                  <div class="as-home" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+            <figcaption>Lista</figcaption>
+          </figure>
+
+          <figure class="ds-shot">
+            <div class="ds-fit">
+              <div class="ds-device">
+                <div class="as-screen" id="detalhe">
+                  <div class="as-statusbar as-statusbar--overlay"><time>18:41</time><svg class="as-icon as-icon--status" aria-hidden="true"><use href="#i-status"/></svg></div>
+                  <div class="as-stage">
+                    <div class="as-map" aria-hidden="true">
+                      <span class="as-map__park"></span>
+                      <span class="as-map__road as-map__road--h"></span>
+                      <span class="as-map__road as-map__road--v"></span>
+                      <span class="as-map__block" style="--x:20%;--y:4%"></span>
+                    </div>
+                    <span class="as-pinwrap is-selected" style="--x:42%;--y:16%">
+                      <span class="as-pin as-pin--event"><svg class="as-icon"><use href="#i-ball"/></svg></span>
+                    </span>
+                  </div>
+                  <article class="as-sheet as-sheet--detail" aria-label="Pelada de quinta">
+                    <div class="as-handle"></div>
+                    <div class="as-sheet__tools">
+                      <a class="as-iconbtn" href="#eventos" aria-label="Fechar"><svg class="as-icon"><use href="#i-close"/></svg></a>
+                      <button class="as-iconbtn" type="button" aria-label="Compartilhar"><svg class="as-icon"><use href="#i-share"/></svg></button>
+                    </div>
+                    <div class="as-scroll">
+                      <div class="as-section" style="padding-top:0">
+                        <p class="as-kicker">Futebol society · intermediário</p>
+                        <h3 class="as-title" style="margin-top:4px">Pelada de quinta</h3>
+                        <p class="as-muted" style="margin-top:4px">Hoje · 19:00–20:30</p>
+                      </div>
+                      <div class="as-section" style="padding-top:0">
+                        <div class="as-fact">
+                          <svg class="as-icon"><use href="#i-pin"/></svg>
+                          <div><strong>Arena Leste</strong><span>Rua do Campo, 120 · 1,2 km</span></div>
+                        </div>
+                        <div class="as-fact">
+                          <svg class="as-icon"><use href="#i-users"/></svg>
+                          <div><strong>14 de 20 atletas</strong><span>6 vagas abertas</span></div>
+                        </div>
+                        <div class="as-fact">
+                          <svg class="as-icon"><use href="#i-repeat"/></svg>
+                          <div><strong>Toda quinta</strong><span>Grupo recorrente</span></div>
+                        </div>
+                        <div class="as-slots" style="--as-slots:0.7;margin-top:8px">
+                          <div class="as-slots__track"><span></span></div>
+                          <span class="as-slots__label">14 de 20 vagas preenchidas</span>
+                        </div>
+                      </div>
+                      <div class="as-divider"></div>
+                      <div class="as-section">
+                        <h4 class="as-section__title">Para entrar</h4>
+                        <p class="as-body">Leve chuteira society. O organizador confirma o pedido. Chegue 10 minutos antes.</p>
+                        <a class="as-person" href="#perfil">
+                          <span class="as-avatar">RM</span>
+                          <span class="as-person__text"><strong>Rafael Mendes</strong><span>Organiza · responde no mesmo dia</span></span>
+                          <svg class="as-icon" aria-hidden="true"><use href="#i-chevron-r"/></svg>
+                        </a>
+                      </div>
+                    </div>
+                    <div class="as-dock">
+                      <div class="as-dock__note"><strong>Grátis</strong><span class="as-muted">6 vagas</span></div>
+                      <a class="as-btn as-btn--primary" href="#candidatura">Quero participar</a>
+                    </div>
+                  </article>
+                  <div class="as-home" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+            <figcaption>Detalhe do evento</figcaption>
+          </figure>
+
+          <figure class="ds-shot">
+            <div class="ds-fit">
+              <div class="ds-device">
+                <div class="as-screen" id="candidatura">
+                  <div class="as-app" style="background:var(--as-surface)">
+                    <div class="as-statusbar"><time>18:41</time><svg class="as-icon as-icon--status" aria-hidden="true"><use href="#i-status"/></svg></div>
+                    <header class="as-header">
+                      <a class="as-iconbtn" href="#detalhe" aria-label="Voltar"><svg class="as-icon"><use href="#i-chevron"/></svg></a>
+                      <h3 class="as-title">Candidatura</h3>
+                    </header>
+                    <div class="as-scroll">
+                      <div class="as-form">
+                        <a class="as-mini" href="#detalhe">
+                          <span class="as-media as-media--futebol as-mini__media"></span>
+                          <span class="as-mini__text">
+                            <strong>Pelada de quinta</strong>
+                            <span>Hoje · 19:00 · Arena Leste</span>
+                          </span>
+                        </a>
+                        <label class="as-field">
+                          <span class="as-field__label">Mensagem ao organizador</span>
+                          <textarea class="as-textarea">Oi, Rafael. Jogo na linha, nível intermediário. Consigo chegar às 19h.</textarea>
+                        </label>
+                        <div class="as-field">
+                          <span class="as-field__label">Posição</span>
+                          <div class="as-chips as-chips--wrap">
+                            <button class="as-chip as-chip--pick is-active" type="button">Linha</button>
+                            <button class="as-chip as-chip--pick" type="button">Gol</button>
+                            <button class="as-chip as-chip--pick" type="button">Tanto faz</button>
+                          </div>
+                        </div>
+                        <div class="as-field">
+                          <span class="as-field__label">Nível</span>
+                          <div class="as-chips as-chips--wrap">
+                            <button class="as-chip as-chip--pick" type="button">Iniciante</button>
+                            <button class="as-chip as-chip--pick is-active" type="button">Intermediário</button>
+                            <button class="as-chip as-chip--pick" type="button">Avançado</button>
+                          </div>
+                        </div>
+                        <p class="as-help">O organizador precisa aceitar. Até lá, a vaga fica como pedido.</p>
+                      </div>
+                    </div>
+                    <div class="as-dock">
+                      <a class="as-btn as-btn--primary as-btn--block" href="#perfil">Enviar candidatura</a>
+                    </div>
+                  </div>
+                  <div class="as-home" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+            <figcaption>Pedir vaga</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="ds-section" id="organizar">
+        <div class="ds-copy">
+          <p class="ds-kicker">Organizar</p>
+          <h2>Criar, aceitar, perfil</h2>
+          <p>Quem organiza publica o evento no mapa, vê os pedidos e aceita quem entra. O perfil junta as inscrições de quem pratica e os eventos de quem organiza.</p>
+          <ul>
+            <li>O local do evento é escolhido no mapa.</li>
+            <li>Recorrência, vagas e preço ficam no mesmo formulário.</li>
+            <li>Inscrição confirmada e pedido pendente usam selos diferentes.</li>
+          </ul>
+        </div>
+        <div class="ds-phones">
+          <figure class="ds-shot">
+            <div class="ds-fit">
+              <div class="ds-device">
+                <div class="as-screen" id="criar">
+                  <div class="as-app" style="background:var(--as-surface)">
+                    <div class="as-statusbar"><time>18:41</time><svg class="as-icon as-icon--status" aria-hidden="true"><use href="#i-status"/></svg></div>
+                    <header class="as-header">
+                      <a class="as-iconbtn" href="#mapa" aria-label="Voltar"><svg class="as-icon"><use href="#i-chevron"/></svg></a>
+                      <h3 class="as-title">Criar evento</h3>
+                    </header>
+                    <div class="as-scroll">
+                      <div class="as-form as-form--tight">
+                        <div class="as-field">
+                          <span class="as-field__label">Esporte</span>
+                          <div class="as-chips as-chips--wrap">
+                            <button class="as-chip as-chip--pick is-active" type="button"><i class="as-dot as-dot--futebol"></i>Futebol</button>
+                            <button class="as-chip as-chip--pick" type="button"><i class="as-dot as-dot--corrida"></i>Corrida</button>
+                            <button class="as-chip as-chip--pick" type="button"><i class="as-dot as-dot--volei"></i>Vôlei</button>
+                            <button class="as-chip as-chip--pick" type="button"><i class="as-dot as-dot--basquete"></i>Basquete</button>
+                          </div>
+                        </div>
+                        <label class="as-field">
+                          <span class="as-field__label">Nome</span>
+                          <input class="as-input" type="text" value="Pelada de quinta">
+                        </label>
+                        <div class="as-field">
+                          <span class="as-field__label">Local</span>
+                          <div class="as-mappick as-mappick--sm">
+                            <div class="as-map" aria-hidden="true">
+                              <span class="as-map__park"></span>
+                              <span class="as-map__road as-map__road--h"></span>
+                              <span class="as-map__road as-map__road--v"></span>
+                              <span class="as-map__block" style="--x:22%;--y:22%"></span>
+                            </div>
+                            <span class="as-pinwrap is-selected" style="--x:62%;--y:46%">
+                              <span class="as-pin as-pin--place"><svg class="as-icon"><use href="#i-building"/></svg></span>
+                            </span>
+                            <div class="as-mappick__caption">
+                              <span class="as-ellipsis">Arena Leste · Rua do Campo, 120</span>
+                              <button class="as-textlink" type="button">Ajustar</button>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="as-pair">
+                          <label class="as-field">
+                            <span class="as-field__label">Data</span>
+                            <input class="as-input" type="text" value="Qui, 8 out">
+                          </label>
+                          <label class="as-field">
+                            <span class="as-field__label">Hora</span>
+                            <input class="as-input" type="text" value="19:00">
+                          </label>
+                        </div>
+                        <div class="as-pair">
+                          <label class="as-field">
+                            <span class="as-field__label">Vagas</span>
+                            <input class="as-input" type="text" inputmode="numeric" value="20">
+                          </label>
+                          <label class="as-field">
+                            <span class="as-field__label">Duração</span>
+                            <input class="as-input" type="text" value="1h30">
+                          </label>
+                        </div>
+                        <div class="as-field">
+                          <span class="as-field__label">Preço</span>
+                          <div class="as-seg">
+                            <button class="as-seg__btn is-active" type="button">Grátis</button>
+                            <button class="as-seg__btn" type="button">Pago</button>
+                          </div>
+                        </div>
+                        <div class="as-spread">
+                          <div>
+                            <strong>Evento recorrente</strong>
+                            <p class="as-muted">Repete toda quinta</p>
+                          </div>
+                          <button class="as-switch is-on" type="button" aria-pressed="true" aria-label="Evento recorrente ligado"></button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="as-dock">
+                      <a class="as-btn as-btn--primary as-btn--block" href="#gerenciar">Publicar evento</a>
+                    </div>
+                  </div>
+                  <div class="as-home" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+            <figcaption>Criar evento</figcaption>
+          </figure>
+
+          <figure class="ds-shot">
+            <div class="ds-fit">
+              <div class="ds-device">
+                <div class="as-screen" id="gerenciar">
+                  <div class="as-app" style="background:var(--as-bg)">
+                    <div class="as-statusbar" style="background:var(--as-surface)"><time>18:41</time><svg class="as-icon as-icon--status" aria-hidden="true"><use href="#i-status"/></svg></div>
+                    <header class="as-header" style="background:var(--as-surface)">
+                      <a class="as-iconbtn" href="#perfil" aria-label="Voltar"><svg class="as-icon"><use href="#i-chevron"/></svg></a>
+                      <h3 class="as-title">Gerenciar</h3>
+                    </header>
+                    <div class="as-scroll">
+                      <div style="background:var(--as-surface);padding:0 16px 16px">
+                        <p class="as-kicker">Corrida · recorrente</p>
+                        <h3 class="as-title" style="margin-top:4px">Giro do parque</h3>
+                        <p class="as-muted" style="margin-top:4px">Amanhã · 6:30 · Parque das Águas</p>
+                        <div class="as-stats" style="margin-top:14px">
+                          <div class="as-stat"><strong>18</strong><span>confirmados</span></div>
+                          <div class="as-stat"><strong>4</strong><span>pedidos</span></div>
+                          <div class="as-stat"><strong>30</strong><span>vagas</span></div>
+                        </div>
+                      </div>
+                      <div class="as-banner" style="margin-top:12px">4 pessoas pediram para correr. Aceite até as 22h.</div>
+                      <div class="as-section">
+                        <h4 class="as-section__title">Pedidos</h4>
+                        <div class="as-person">
+                          <span class="as-avatar">LS</span>
+                          <span class="as-person__text"><strong>Lívia Souza</strong><span>5 km · iniciante</span></span>
+                          <button class="as-btn as-btn--primary as-btn--sm" type="button">Aceitar</button>
+                        </div>
+                        <div class="as-person">
+                          <span class="as-avatar">CP</span>
+                          <span class="as-person__text"><strong>Caio Pires</strong><span>5 km · intermediário</span></span>
+                          <button class="as-btn as-btn--primary as-btn--sm" type="button">Aceitar</button>
+                        </div>
+                        <div class="as-person">
+                          <span class="as-avatar">HD</span>
+                          <span class="as-person__text"><strong>Helena Dias</strong><span>10 km · avançado</span></span>
+                          <button class="as-btn as-btn--primary as-btn--sm" type="button">Aceitar</button>
+                        </div>
+                        <div class="as-person">
+                          <span class="as-avatar">TM</span>
+                          <span class="as-person__text"><strong>Tiago Martins</strong><span>5 km · iniciante</span></span>
+                          <span class="as-badge as-badge--ok">Confirmado</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="as-home" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+            <figcaption>Gerenciar pedidos</figcaption>
+          </figure>
+
+          <figure class="ds-shot">
+            <div class="ds-fit">
+              <div class="ds-device">
+                <div class="as-screen" id="perfil">
+                  <div class="as-app" style="background:var(--as-bg)">
+                    <div class="as-statusbar" style="background:var(--as-surface)"><time>18:41</time><svg class="as-icon as-icon--status" aria-hidden="true"><use href="#i-status"/></svg></div>
+                    <header class="as-header" style="background:var(--as-surface)">
+                      <h3 class="as-title">Perfil</h3>
+                    </header>
+                    <div class="as-scroll">
+                      <div style="background:var(--as-surface);padding-bottom:16px">
+                        <div class="as-profile-head">
+                          <span class="as-avatar as-avatar--lg">AL</span>
+                          <h3 class="as-title">Ana Lima</h3>
+                          <p class="as-muted">Pratica e organiza</p>
+                          <div class="as-chips" style="justify-content:center">
+                            <span class="as-chip"><i class="as-dot as-dot--corrida"></i>Corrida</span>
+                            <span class="as-chip"><i class="as-dot as-dot--volei"></i>Vôlei</span>
+                          </div>
+                        </div>
+                        <div class="as-stats" style="padding:0 16px">
+                          <div class="as-stat"><strong>12</strong><span>eventos</span></div>
+                          <div class="as-stat"><strong>4</strong><span>grupos</span></div>
+                          <div class="as-stat"><strong>2</strong><span>que organiza</span></div>
+                        </div>
+                      </div>
+                      <div class="as-section">
+                        <div class="as-spread">
+                          <h4 class="as-section__title" style="margin:0">Inscrições</h4>
+                          <a class="as-textlink" href="#gerenciar">Gerenciar</a>
+                        </div>
+                        <a class="as-event-row" href="#detalhe" style="padding-left:0;padding-right:0">
+                          <span class="as-event-row__when"><strong>19:00</strong>Hoje</span>
+                          <span class="as-event-row__body">
+                            <strong>Pelada de quinta</strong>
+                            <span>Pedido enviado · Arena Leste</span>
+                          </span>
+                          <span class="as-badge as-badge--wait">Pendente</span>
+                        </a>
+                        <a class="as-event-row" href="#gerenciar" style="padding-left:0;padding-right:0">
+                          <span class="as-event-row__when"><strong>06:30</strong>Amanhã</span>
+                          <span class="as-event-row__body">
+                            <strong>Giro do parque</strong>
+                            <span>Parque das Águas · 5 km</span>
+                          </span>
+                          <span class="as-badge as-badge--ok">Organiza</span>
+                        </a>
+                        <a class="as-event-row" href="#eventos" style="padding-left:0;padding-right:0;border-bottom:0">
+                          <span class="as-event-row__when"><strong>09:00</strong>Sáb</span>
+                          <span class="as-event-row__body">
+                            <strong>Aberto de vôlei de areia</strong>
+                            <span>Dupla com Souza</span>
+                          </span>
+                          <span class="as-badge as-badge--ok">Confirmada</span>
+                        </a>
+                      </div>
+                    </div>
+                    <nav class="as-tabbar" aria-label="Principal">
+                      <a class="as-tab" href="#mapa"><svg class="as-icon"><use href="#i-pin"/></svg>Mapa</a>
+                      <a class="as-tab" href="#eventos"><svg class="as-icon"><use href="#i-calendar"/></svg>Eventos</a>
+                      <a class="as-tab as-tab--create" href="#criar" aria-label="Criar evento"><svg class="as-icon"><use href="#i-plus"/></svg></a>
+                      <a class="as-tab" href="#perfil"><svg class="as-icon"><use href="#i-ticket"/></svg>Inscrições</a>
+                      <a class="as-tab is-active" href="#perfil" aria-current="page"><svg class="as-icon"><use href="#i-user"/></svg>Perfil</a>
+                    </nav>
+                  </div>
+                  <div class="as-home" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+            <figcaption>Perfil e inscrições</figcaption>
+          </figure>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="ds-foot">
+    <div class="ds-wrap">All Sports · design system em <strong>all-sports.css</strong> · esta página só mostra as telas.</div>
+  </footer>
+</body>
+</html>
