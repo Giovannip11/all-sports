@@ -1,98 +1,135 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
+import { Link, router } from 'expo-router';
+import { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { AsButton } from '@/components/design-system/as-button';
+import { AsField } from '@/components/design-system/as-field';
+import { DSColors, DSSpacing, DSText } from '@/constants/design-system';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+export default function LoginScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-export default function HomeScreen() {
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.screen}>
       <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled">
+            <View style={styles.hero}>
+              <View style={styles.logo}>
+                <Image
+                  style={styles.logoMark}
+                  source={require('@/assets/images/expo-logo.png')}
+                />
+                <Text style={styles.logoText}>All Sports</Text>
+              </View>
+              <Text style={styles.lead}>
+                Entre para achar onde jogar, um grupo ou um campeonato perto de você.
+              </Text>
+            </View>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+            <View style={styles.stack}>
+              <AsField
+                label="E-mail"
+                placeholder="voce@email.com"
+                autoComplete="email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+              />
+              <AsField
+                label="Senha"
+                placeholder="Sua senha"
+                autoComplete="current-password"
+                isPassword
+                value={password}
+                onChangeText={setPassword}
+                labelAction={{ label: 'Esqueci', onPress: () => {} }}
+              />
+            </View>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+            <AsButton
+              label="Entrar"
+              variant="primary"
+              block
+              onPress={() => router.replace('/main')}
+            />
 
-        {Platform.OS === 'web' && <WebBadge />}
+            <Text style={styles.footer}>
+              Ainda não tem conta?{' '}
+              <Link href="/signup" style={styles.footerLink}>
+                Criar conta
+              </Link>
+            </Text>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
-    </ThemedView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
+    backgroundColor: DSColors.bg,
   },
   safeArea: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  flex: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
   },
-  title: {
+  content: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: DSSpacing[6],
+    gap: DSSpacing[6],
+  },
+  hero: {
+    alignItems: 'center',
+    gap: DSSpacing[3],
+  },
+  logo: {
+    alignItems: 'center',
+    gap: DSSpacing[3],
+  },
+  logoMark: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: DSColors.primary,
+  },
+  logoText: {
+    fontSize: DSText['3xl'],
+    fontWeight: '800',
+    letterSpacing: -1.2,
+    color: DSColors.ink,
+  },
+  lead: {
+    maxWidth: 260,
     textAlign: 'center',
+    fontSize: DSText.md,
+    lineHeight: 21,
+    color: DSColors.inkSecondary,
   },
-  code: {
-    textTransform: 'uppercase',
+  stack: {
+    gap: DSSpacing[3] + 2,
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  footer: {
+    textAlign: 'center',
+    fontSize: DSText.sm,
+    color: DSColors.inkSecondary,
+    fontWeight: '600',
+  },
+  footerLink: {
+    color: DSColors.primary,
+    fontWeight: '800',
   },
 });
