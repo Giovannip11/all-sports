@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "all-sports-web",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["expo", "start", "--web", "--port", "8099"],
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd frontend && npx expo start --web --port 8099"],
       "port": 8099
     }
   ]

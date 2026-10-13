@@ -30,7 +30,7 @@ export default function LoginScreen() {
                 <Text style={styles.logoText}>All Sports</Text>
               </View>
               <Text style={styles.lead}>
-                Entre para achar onde jogar, um grupo ou um campeonato perto de você.
+                O app para quem gosta de esporte.
               </Text>
             </View>
 
