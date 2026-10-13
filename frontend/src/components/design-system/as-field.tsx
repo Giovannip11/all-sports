@@ -17,6 +17,7 @@ export type AsFieldProps = TextInputProps & {
   /** Toggles a visible/hidden password control instead of rendering secureTextEntry directly */
   isPassword?: boolean;
   helpText?: string;
+  error?: string;
 };
 
 export function AsField({
@@ -24,6 +25,7 @@ export function AsField({
   labelAction,
   isPassword,
   helpText,
+  error,
   style,
   ...rest
 }: AsFieldProps) {
@@ -41,7 +43,12 @@ export function AsField({
       </View>
       <View style={styles.control}>
         <TextInput
-          style={[styles.input, isPassword && styles.inputWithAccessory, style]}
+          style={[
+            styles.input,
+            isPassword && styles.inputWithAccessory,
+            error && styles.inputError,
+            style,
+          ]}
           placeholderTextColor={DSColors.inkTertiary}
           secureTextEntry={isPassword ? hidden : undefined}
           {...rest}
@@ -57,7 +64,11 @@ export function AsField({
           </Pressable>
         )}
       </View>
-      {helpText && <Text style={styles.help}>{helpText}</Text>}
+      {error ? (
+        <Text style={styles.error}>{error}</Text>
+      ) : (
+        helpText && <Text style={styles.help}>{helpText}</Text>
+      )}
     </View>
   );
 }
@@ -100,6 +111,9 @@ const styles = StyleSheet.create({
   inputWithAccessory: {
     paddingRight: 76,
   },
+  inputError: {
+    borderColor: DSColors.danger,
+  },
   accessory: {
     position: 'absolute',
     right: 10,
@@ -115,5 +129,10 @@ const styles = StyleSheet.create({
     fontSize: DSText.xs,
     fontWeight: '600',
     color: DSColors.inkSecondary,
+  },
+  error: {
+    fontSize: DSText.xs,
+    fontWeight: '700',
+    color: DSColors.danger,
   },
 });

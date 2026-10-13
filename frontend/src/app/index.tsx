@@ -7,10 +7,40 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AsButton } from '@/components/design-system/as-button';
 import { AsField } from '@/components/design-system/as-field';
 import { DSColors, DSSpacing, DSText } from '@/constants/design-system';
+import { ApiError } from '@/lib/api';
+import { useAuth } from '@/providers/auth-context';
+import { isValidEmail, isValidPassword } from '@/utils/validation';
 
 export default function LoginScreen() {
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit() {
+    const nextEmailError = isValidEmail(email) ? '' : 'Digite um e-mail válido';
+    const nextPasswordError = isValidPassword(password)
+      ? ''
+      : 'A senha precisa ter pelo menos 6 caracteres';
+
+    setEmailError(nextEmailError);
+    setPasswordError(nextPasswordError);
+    setFormError('');
+    if (nextEmailError || nextPasswordError) return;
+
+    setLoading(true);
+    try {
+      await signIn(email.trim(), password);
+      router.replace('/main');
+    } catch (error) {
+      setFormError(error instanceof ApiError ? error.message : 'Erro inesperado ao entrar');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <View style={styles.screen}>
@@ -30,9 +60,15 @@ export default function LoginScreen() {
                 <Text style={styles.logoText}>All Sports</Text>
               </View>
               <Text style={styles.lead}>
-                O app para quem gosta de esporte.
+                Encontre um racha, um grupo ou um campeonato perto de você — ou organize o seu.
               </Text>
             </View>
+
+            {formError ? (
+              <View style={styles.formError}>
+                <Text style={styles.formErrorText}>{formError}</Text>
+              </View>
+            ) : null}
 
             <View style={styles.stack}>
               <AsField
@@ -42,7 +78,11 @@ export default function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(value) => {
+                  setEmail(value);
+                  if (emailError) setEmailError('');
+                }}
+                error={emailError}
               />
               <AsField
                 label="Senha"
@@ -50,16 +90,21 @@ export default function LoginScreen() {
                 autoComplete="current-password"
                 isPassword
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  if (passwordError) setPasswordError('');
+                }}
+                error={passwordError}
                 labelAction={{ label: 'Esqueci', onPress: () => {} }}
               />
             </View>
 
             <AsButton
-              label="Entrar"
+              label={loading ? 'Entrando...' : 'Entrar'}
               variant="primary"
               block
-              onPress={() => router.replace('/main')}
+              loading={loading}
+              onPress={handleSubmit}
             />
 
             <Text style={styles.footer}>
@@ -113,7 +158,7 @@ const styles = StyleSheet.create({
     color: DSColors.ink,
   },
   lead: {
-    maxWidth: 260,
+    maxWidth: 280,
     textAlign: 'center',
     fontSize: DSText.md,
     lineHeight: 21,
@@ -131,5 +176,16 @@ const styles = StyleSheet.create({
   footerLink: {
     color: DSColors.primary,
     fontWeight: '800',
+  },
+  formError: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: DSColors.dangerTint,
+  },
+  formErrorText: {
+    fontSize: DSText.sm,
+    fontWeight: '700',
+    color: DSColors.danger,
+    textAlign: 'center',
   },
 });

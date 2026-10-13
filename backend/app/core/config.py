@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     environment: str = "development"
     cors_origins: list[str] = ["http://localhost:8081", "http://localhost:8099"]
 
+    supabase_url: str
+    supabase_anon_key: str
+    supabase_service_role_key: str
+
 
 @lru_cache
 def get_settings() -> Settings:

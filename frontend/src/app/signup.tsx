@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -15,21 +15,86 @@ import { AsButton } from '@/components/design-system/as-button';
 import { AsChip } from '@/components/design-system/as-chip';
 import { AsField } from '@/components/design-system/as-field';
 import { DSColors, DSSpacing, DSText } from '@/constants/design-system';
-
-type Role = 'practice' | 'organize';
+import { ApiError, type Role } from '@/lib/api';
+import { useAuth } from '@/providers/auth-context';
+import { isValidEmail, isValidPassword } from '@/utils/validation';
 
 const SPORTS = ['Futebol', 'Corrida', 'Vôlei', 'Bike', 'Basquete', 'Natação'];
 
 export default function SignupScreen() {
+  const { signUp } = useAuth();
   const [role, setRole] = useState<Role>('practice');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [sports, setSports] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [sportsError, setSportsError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   function toggleSport(sport: string) {
     setSports((current) =>
       current.includes(sport) ? current.filter((s) => s !== sport) : [...current, sport],
+    );
+    setSportsError('');
+  }
+
+  async function handleSubmit() {
+    const nextNameError = name.trim().length >= 2 ? '' : 'Digite seu nome';
+    const nextEmailError = isValidEmail(email) ? '' : 'Digite um e-mail válido';
+    const nextPasswordError = isValidPassword(password)
+      ? ''
+      : 'A senha precisa ter pelo menos 6 caracteres';
+    const nextSportsError = sports.length > 0 ? '' : 'Escolha pelo menos um esporte';
+
+    setNameError(nextNameError);
+    setEmailError(nextEmailError);
+    setPasswordError(nextPasswordError);
+    setSportsError(nextSportsError);
+    setFormError('');
+    if (nextNameError || nextEmailError || nextPasswordError || nextSportsError) return;
+
+    setLoading(true);
+    try {
+      const { needsEmailConfirmation } = await signUp({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        role,
+      });
+
+      if (needsEmailConfirmation) {
+        setAwaitingConfirmation(true);
+        return;
+      }
+
+      router.replace('/main');
+    } catch (error) {
+      setFormError(error instanceof ApiError ? error.message : 'Erro inesperado ao criar conta');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (awaitingConfirmation) {
+    return (
+      <View style={styles.screen}>
+        <SafeAreaView style={[styles.safeArea, styles.confirmWrap]}>
+          <Text style={styles.confirmTitle}>Confirme seu e-mail</Text>
+          <Text style={styles.confirmBody}>
+            Enviamos um link de confirmação para {email}. Abra o e-mail e confirme antes de
+            entrar.
+          </Text>
+          <Link href="/" asChild>
+            <AsButton label="Ir para o login" variant="primary" block />
+          </Link>
+        </SafeAreaView>
+      </View>
     );
   }
 
@@ -76,10 +141,27 @@ export default function SignupScreen() {
               </Pressable>
             </View>
             <Text style={styles.help}>
-              Você pode organizar eventos depois, sem criar outra conta.
+              {role === 'practice'
+                ? 'Você pode organizar eventos depois, sem criar outra conta.'
+                : 'Comece grátis organizando rachas. Para campeonatos com inscrição e cobrança, dá pra evoluir de plano quando quiser.'}
             </Text>
 
-            <AsField label="Nome" placeholder="Seu nome" value={name} onChangeText={setName} />
+            {formError ? (
+              <View style={styles.formError}>
+                <Text style={styles.formErrorText}>{formError}</Text>
+              </View>
+            ) : null}
+
+            <AsField
+              label="Nome"
+              placeholder="Seu nome"
+              value={name}
+              onChangeText={(value) => {
+                setName(value);
+                if (nameError) setNameError('');
+              }}
+              error={nameError}
+            />
             <AsField
               label="E-mail"
               placeholder="voce@email.com"
@@ -87,7 +169,11 @@ export default function SignupScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(value) => {
+                setEmail(value);
+                if (emailError) setEmailError('');
+              }}
+              error={emailError}
             />
             <AsField
               label="Senha"
@@ -95,7 +181,11 @@ export default function SignupScreen() {
               autoComplete="new-password"
               isPassword
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(value) => {
+                setPassword(value);
+                if (passwordError) setPasswordError('');
+              }}
+              error={passwordError}
             />
 
             <View style={styles.sportsField}>
@@ -110,12 +200,19 @@ export default function SignupScreen() {
                   />
                 ))}
               </View>
+              {sportsError ? <Text style={styles.sportsError}>{sportsError}</Text> : null}
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
 
         <SafeAreaView edges={['bottom']} style={styles.dock}>
-          <AsButton label="Criar conta" variant="primary" block onPress={() => router.replace('/main')} />
+          <AsButton
+            label={loading ? 'Criando conta...' : 'Criar conta'}
+            variant="primary"
+            block
+            loading={loading}
+            onPress={handleSubmit}
+          />
         </SafeAreaView>
       </SafeAreaView>
     </View>
@@ -206,11 +303,47 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
+  sportsError: {
+    fontSize: DSText.xs,
+    fontWeight: '700',
+    color: DSColors.danger,
+  },
+  formError: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: DSColors.dangerTint,
+  },
+  formErrorText: {
+    fontSize: DSText.sm,
+    fontWeight: '700',
+    color: DSColors.danger,
+    textAlign: 'center',
+  },
   dock: {
     paddingHorizontal: DSSpacing[4],
     paddingTop: DSSpacing[3],
     borderTopWidth: 1,
     borderTopColor: DSColors.line,
     backgroundColor: DSColors.surface,
+  },
+  confirmWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: DSSpacing[3],
+    padding: DSSpacing[6],
+  },
+  confirmTitle: {
+    fontSize: DSText.xl,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+    color: DSColors.ink,
+    textAlign: 'center',
+  },
+  confirmBody: {
+    fontSize: DSText.md,
+    lineHeight: 21,
+    color: DSColors.inkSecondary,
+    textAlign: 'center',
+    marginBottom: DSSpacing[3],
   },
 });

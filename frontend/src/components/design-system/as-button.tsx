@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
 
 import { DSColors, DSRadius, DSText } from '@/constants/design-system';
 
@@ -9,6 +9,7 @@ export type AsButtonProps = PressableProps & {
   variant?: AsButtonVariant;
   block?: boolean;
   disabled?: boolean;
+  loading?: boolean;
 };
 
 export function AsButton({
@@ -16,25 +17,35 @@ export function AsButton({
   variant = 'primary',
   block,
   disabled,
+  loading,
   style,
   ...rest
 }: AsButtonProps) {
+  const isDisabled = disabled || loading;
+
   return (
     <Pressable
       accessibilityRole="button"
-      disabled={disabled}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      disabled={isDisabled}
       style={({ pressed }) => [
         styles.base,
         variant === 'primary' && styles.primary,
         variant === 'secondary' && styles.secondary,
         variant === 'ghost' && styles.ghost,
         block && styles.block,
-        disabled && styles.disabled,
-        pressed && !disabled && variant === 'primary' && styles.primaryPressed,
-        pressed && !disabled && variant !== 'primary' && styles.pressed,
+        isDisabled && styles.disabled,
+        pressed && !isDisabled && variant === 'primary' && styles.primaryPressed,
+        pressed && !isDisabled && variant !== 'primary' && styles.pressed,
         typeof style === 'function' ? undefined : style,
       ]}
       {...rest}>
+      {loading && (
+        <ActivityIndicator
+          color={variant === 'primary' ? DSColors.inverse : DSColors.primary}
+          style={styles.spinner}
+        />
+      )}
       <Text
         style={[
           styles.label,
@@ -55,6 +66,10 @@ const styles = StyleSheet.create({
     borderRadius: DSRadius.lg + 3,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  spinner: {
+    marginRight: 8,
   },
   block: {
     alignSelf: 'stretch',
