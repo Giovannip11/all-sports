@@ -3,3 +3,9 @@
 
 # editors
 *.swp
+
+# lib
+node_modules
+
+# file
+expo-env.d.ts
