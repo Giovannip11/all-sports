@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>All Sports — marcas</title>
+  <link rel="icon" href="icon-stack-green.svg">
+  <style>
+    :root { color-scheme: light; }
+    body {
+      margin: 0;
+      font: 500 15px/1.4 ui-sans-serif, system-ui, sans-serif;
+      background: #e7ebf0;
+      color: #1a1c1e;
+    }
+    main { width: min(980px, calc(100% - 32px)); margin: 32px auto 64px; }
+    h1 { font-size: 28px; letter-spacing: -0.04em; margin: 0 0 8px; }
+    p { margin: 0 0 24px; color: #5c6370; max-width: 62ch; }
+    h2 { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; margin: 28px 0 12px; }
+    .row { display: grid; gap: 12px; }
+    .row.wide { grid-template-columns: 1fr; }
+    .row.cards { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    figure {
+      margin: 0;
+      padding: 16px;
+      border-radius: 12px;
+      background: #fff;
+    }
+    figure.dark { background: #1a1c1e; color: #fff; }
+    figure.green { background: #0c6e52; color: #fff; }
+    figure.round { max-width: 440px; }
+    img { width: 100%; height: auto; display: block; }
+    figcaption { margin-top: 10px; font-size: 12px; font-weight: 650; }
+    .sizes { display: flex; gap: 16px; align-items: end; }
+    .sizes img { width: auto; background: #111; border-radius: 8px; }
+    .sizes img.light { background: #fff; outline: 1px solid #e3e6ea; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>All Sports</h1>
+    <p>Selos no mesmo desenho da patch que você marcou: bloco preto, letra pesada e uma estrela no meio do nome. O texto é All Sports, com a verde do app e a estrela dourada.</p>
+
+    <h2>Patch redonda</h2>
+    <div class="row cards">
+      <figure class="round"><img src="patch-round.svg" alt="Patch circular All Sports, estrela azul e letras vermelhas"><figcaption>patch-round.svg</figcaption></figure>
+    </div>
+
+    <h2>Wordmark — o mais parecido</h2>
+    <div class="row wide">
+      <figure class="dark"><img src="wordmark-ink.svg" alt="All Sports em branco sobre preto"><figcaption>wordmark-ink.svg</figcaption></figure>
+      <figure class="green"><img src="wordmark-green.svg" alt="All Sports em branco sobre verde, estrela dourada"><figcaption>wordmark-green.svg</figcaption></figure>
+      <figure><img src="wordmark-light.svg" alt="All Sports em preto sobre branco, estrela verde"><figcaption>wordmark-light.svg</figcaption></figure>
+    </div>
+
+    <h2>Patch em duas linhas</h2>
+    <div class="row wide">
+      <figure class="dark"><img src="patch-ink.svg" alt="Patch All Sports preta"><figcaption>patch-ink.svg</figcaption></figure>
+      <figure class="green"><img src="patch-green.svg" alt="Patch All Sports verde"><figcaption>patch-green.svg</figcaption></figure>
+      <figure><img src="patch-light.svg" alt="Patch All Sports clara"><figcaption>patch-light.svg</figcaption></figure>
+    </div>
+
+    <h2>Ícone quadrado</h2>
+    <div class="row cards">
+      <figure class="dark"><img src="icon-wordmark-ink.svg" alt="Ícone com o wordmark"><figcaption>icon-wordmark-ink.svg</figcaption></figure>
+      <figure class="green"><img src="icon-wordmark-green.svg" alt="Ícone verde com o wordmark"><figcaption>icon-wordmark-green.svg</figcaption></figure>
+      <figure class="dark"><img src="icon-stack-ink.svg" alt="Ícone empilhado preto"><figcaption>icon-stack-ink.svg</figcaption></figure>
+      <figure class="green"><img src="icon-stack-green.svg" alt="Ícone empilhado verde"><figcaption>icon-stack-green.svg</figcaption></figure>
+    </div>
+
+    <h2>Em 32 e 64 px</h2>
+    <div class="sizes">
+      <img src="icon-stack-green.svg" width="32" height="32" alt="">
+      <img src="icon-stack-green.svg" width="64" height="64" alt="">
+      <img src="icon-stack-ink.svg" width="64" height="64" alt="">
+      <img class="light" src="wordmark-ink.svg" height="32" alt="">
+      <img class="light" src="patch-green.svg" height="48" alt="">
+    </div>
+  </main>
+</body>
+</html>

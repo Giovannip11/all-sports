@@ -1,6 +1,15 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import {
+  PanResponder,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AsChip } from '@/components/design-system/as-chip';
@@ -10,7 +19,19 @@ import { DISCOVER_MARKERS, SPORT_TYPES, YOU_POSITION, type SportKey } from '@/co
 import { BottomTabInset } from '@/constants/theme';
 import { useAuth } from '@/providers/auth-context';
 
+/** How far the mocked map can be dragged from its origin, in px. */
+const PAN_LIMIT = 140;
+
+const clamp = (value: number) => Math.max(-PAN_LIMIT, Math.min(PAN_LIMIT, value));
+
 const SPORT_KEYS = Object.keys(SPORT_TYPES) as SportKey[];
+
+function normalize(text: string) {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -22,6 +43,26 @@ export default function DiscoverScreen() {
   const { user, signOut } = useAuth();
   const [activeSports, setActiveSports] = useState<SportKey[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const panStart = useRef({ x: 0, y: 0 });
+  const panRef = useRef(pan);
+  panRef.current = pan;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 4 || Math.abs(g.dy) > 4,
+      onPanResponderGrant: () => {
+        panStart.current = panRef.current;
+      },
+      onPanResponderMove: (_, g) =>
+        setPan({
+          x: clamp(panStart.current.x + g.dx),
+          y: clamp(panStart.current.y + g.dy),
+        }),
+      onPanResponderTerminationRequest: () => false,
+    }),
+  ).current;
 
   function handleSignOut() {
     signOut();
@@ -34,37 +75,51 @@ export default function DiscoverScreen() {
     );
   }
 
-  const markers = useMemo(
-    () =>
-      activeSports.length === 0
-        ? DISCOVER_MARKERS
-        : DISCOVER_MARKERS.filter((marker) => activeSports.includes(marker.sport)),
-    [activeSports],
-  );
+  const markers = useMemo(() => {
+    const term = normalize(query.trim());
+    return DISCOVER_MARKERS.filter((marker) => {
+      if (activeSports.length > 0 && !activeSports.includes(marker.sport)) return false;
+      if (!term) return true;
+      const haystack = normalize(
+        `${marker.title} ${marker.subtitle} ${SPORT_TYPES[marker.sport].label}`,
+      );
+      return haystack.includes(term);
+    });
+  }, [activeSports, query]);
 
   return (
     <View style={styles.screen}>
-      <View style={styles.map}>
-        <View style={[styles.blob, styles.blobPrimary]} />
-        <View style={[styles.blob, styles.blobAccent]} />
-        <View style={styles.roadH} />
-        <View style={styles.roadV} />
+      <View style={styles.map} {...panResponder.panHandlers}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedId(null)}>
+          <View
+            style={[styles.layer, { transform: [{ translateX: pan.x }, { translateY: pan.y }] }]}>
+            <View style={[styles.blob, styles.blobPrimary]} />
+            <View style={[styles.blob, styles.blobAccent]} />
+            <View style={styles.roadH} />
+            <View style={styles.roadV} />
 
-        <View style={[styles.you, { left: YOU_POSITION.x, top: YOU_POSITION.y }]} />
+            <View
+              pointerEvents="none"
+              style={[styles.you, { left: YOU_POSITION.x, top: YOU_POSITION.y }]}
+            />
 
-        {markers.map((marker) => (
-          <MapPin
-            key={marker.id}
-            x={marker.position.x}
-            y={marker.position.y}
-            color={SPORT_TYPES[marker.sport].color}
-            label={SPORT_TYPES[marker.sport].label.charAt(0)}
-            dashed={marker.visibility === 'private'}
-            selected={selectedId === marker.id}
-            caption={selectedId === marker.id ? marker.title : undefined}
-            onPress={() => setSelectedId((current) => (current === marker.id ? null : marker.id))}
-          />
-        ))}
+            {markers.map((marker) => (
+              <MapPin
+                key={marker.id}
+                x={marker.position.x}
+                y={marker.position.y}
+                color={SPORT_TYPES[marker.sport].color}
+                label={SPORT_TYPES[marker.sport].label.charAt(0)}
+                dashed={marker.visibility === 'private'}
+                selected={selectedId === marker.id}
+                caption={selectedId === marker.id ? marker.title : undefined}
+                onPress={() =>
+                  setSelectedId((current) => (current === marker.id ? null : marker.id))
+                }
+              />
+            ))}
+          </View>
+        </Pressable>
       </View>
 
       <SafeAreaView edges={['top']} style={styles.floatHead}>
@@ -73,6 +128,10 @@ export default function DiscoverScreen() {
             style={styles.searchInput}
             placeholder="Esporte, local ou racha"
             placeholderTextColor={DSColors.inkSecondary}
+            value={query}
+            onChangeText={setQuery}
+            returnKeyType="search"
+            autoCorrect={false}
           />
           <Pressable
             onPress={handleSignOut}
@@ -106,8 +165,12 @@ export default function DiscoverScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.cards}>
           {markers.map((marker) => (
-            <View key={marker.id} style={styles.card}>
-              <View style={[styles.cardMedia, { backgroundColor: SPORT_TYPES[marker.sport].color }]}>
+            <Pressable
+              key={marker.id}
+              onPress={() => setSelectedId(marker.id)}
+              style={[styles.card, selectedId === marker.id && styles.cardSelected]}>
+              <View
+                style={[styles.cardMedia, { backgroundColor: SPORT_TYPES[marker.sport].color }]}>
                 <Text style={styles.cardBadge}>{marker.badge}</Text>
               </View>
               <View style={styles.cardBody}>
@@ -118,7 +181,7 @@ export default function DiscoverScreen() {
                   {marker.subtitle}
                 </Text>
               </View>
-            </View>
+            </Pressable>
           ))}
           {markers.length === 0 && (
             <Text style={styles.empty}>Nenhum resultado para esse filtro.</Text>
@@ -141,6 +204,15 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     overflow: 'hidden',
+    ...(Platform.OS === 'web' ? ({ cursor: 'grab', userSelect: 'none' } as object) : null),
+  },
+  // Larger than the viewport so dragging never reveals an empty edge.
+  layer: {
+    position: 'absolute',
+    top: -PAN_LIMIT,
+    left: -PAN_LIMIT,
+    right: -PAN_LIMIT,
+    bottom: -PAN_LIMIT,
   },
   blob: {
     position: 'absolute',
@@ -266,6 +338,10 @@ const styles = StyleSheet.create({
     backgroundColor: DSColors.surface,
     borderWidth: 1,
     borderColor: DSColors.line,
+  },
+  cardSelected: {
+    borderColor: DSColors.primary,
+    borderWidth: 2,
   },
   cardMedia: {
     height: 64,
