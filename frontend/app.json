@@ -32,6 +32,12 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O All Sports usa sua localização para mostrar eventos e quadras perto de você."
+        }
       ]
     ],
     "experiments": {

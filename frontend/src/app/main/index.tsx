@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import {
-  PanResponder,
-  Platform,
+  ActivityIndicator,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,25 +11,22 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MapView, { Marker } from 'react-native-maps';
 
 import { AsChip } from '@/components/design-system/as-chip';
-import { MapPin } from '@/components/discover/map-pin';
+import { MarkerPin } from '@/components/discover/marker-pin';
 import { DSColors, DSRadius, DSSpacing, DSText } from '@/constants/design-system';
-import { DISCOVER_MARKERS, SPORT_TYPES, YOU_POSITION, type SportKey } from '@/constants/discover';
+import { DISCOVER_MARKERS, SPORT_TYPES, type SportKey } from '@/constants/discover';
 import { BottomTabInset } from '@/constants/theme';
+import { useUserLocation } from '@/hooks/use-user-location';
 import { useAuth } from '@/providers/auth-context';
-
-/** How far the mocked map can be dragged from its origin, in px. */
-const PAN_LIMIT = 140;
-
-const clamp = (value: number) => Math.max(-PAN_LIMIT, Math.min(PAN_LIMIT, value));
 
 const SPORT_KEYS = Object.keys(SPORT_TYPES) as SportKey[];
 
 function normalize(text: string) {
   return text
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase();
 }
 
@@ -41,28 +38,11 @@ function initials(name: string) {
 
 export default function DiscoverScreen() {
   const { user, signOut } = useAuth();
+  const { region, status } = useUserLocation();
   const [activeSports, setActiveSports] = useState<SportKey[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const panStart = useRef({ x: 0, y: 0 });
-  const panRef = useRef(pan);
-  panRef.current = pan;
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 4 || Math.abs(g.dy) > 4,
-      onPanResponderGrant: () => {
-        panStart.current = panRef.current;
-      },
-      onPanResponderMove: (_, g) =>
-        setPan({
-          x: clamp(panStart.current.x + g.dx),
-          y: clamp(panStart.current.y + g.dy),
-        }),
-      onPanResponderTerminationRequest: () => false,
-    }),
-  ).current;
+  const mapRef = useRef<MapView>(null);
 
   function handleSignOut() {
     signOut();
@@ -87,40 +67,70 @@ export default function DiscoverScreen() {
     });
   }, [activeSports, query]);
 
+  function focusMarker(id: string) {
+    setSelectedId(id);
+    if (!region) return;
+    const marker = DISCOVER_MARKERS.find((m) => m.id === id);
+    if (!marker) return;
+    mapRef.current?.animateToRegion(
+      {
+        latitude: region.latitude + marker.offset.lat,
+        longitude: region.longitude + marker.offset.lng,
+        latitudeDelta: region.latitudeDelta,
+        longitudeDelta: region.longitudeDelta,
+      },
+      300,
+    );
+  }
+
   return (
     <View style={styles.screen}>
-      <View style={styles.map} {...panResponder.panHandlers}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedId(null)}>
-          <View
-            style={[styles.layer, { transform: [{ translateX: pan.x }, { translateY: pan.y }] }]}>
-            <View style={[styles.blob, styles.blobPrimary]} />
-            <View style={[styles.blob, styles.blobAccent]} />
-            <View style={styles.roadH} />
-            <View style={styles.roadV} />
-
-            <View
-              pointerEvents="none"
-              style={[styles.you, { left: YOU_POSITION.x, top: YOU_POSITION.y }]}
-            />
-
-            {markers.map((marker) => (
-              <MapPin
-                key={marker.id}
-                x={marker.position.x}
-                y={marker.position.y}
+      {region ? (
+        <MapView
+          ref={mapRef}
+          style={StyleSheet.absoluteFill}
+          initialRegion={region}
+          showsUserLocation
+          showsMyLocationButton
+          onPress={() => setSelectedId(null)}>
+          {markers.map((marker) => (
+            <Marker
+              key={marker.id}
+              coordinate={{
+                latitude: region.latitude + marker.offset.lat,
+                longitude: region.longitude + marker.offset.lng,
+              }}
+              title={marker.title}
+              description={marker.subtitle}
+              onPress={() => setSelectedId(marker.id)}>
+              <MarkerPin
                 color={SPORT_TYPES[marker.sport].color}
                 label={SPORT_TYPES[marker.sport].label.charAt(0)}
                 dashed={marker.visibility === 'private'}
                 selected={selectedId === marker.id}
-                caption={selectedId === marker.id ? marker.title : undefined}
-                onPress={() =>
-                  setSelectedId((current) => (current === marker.id ? null : marker.id))
-                }
               />
-            ))}
-          </View>
-        </Pressable>
-      </View>
+            </Marker>
+          ))}
+        </MapView>
+      ) : (
+        <View style={styles.mapFallback}>
+          {status === 'loading' && <ActivityIndicator color={DSColors.primary} />}
+          {status === 'denied' && (
+            <>
+              <Text style={styles.fallbackTitle}>Precisamos da sua localização</Text>
+              <Text style={styles.fallbackBody}>
+                Ative a permissão de localização para ver o mapa da sua região.
+              </Text>
+              <Pressable onPress={() => Linking.openSettings()} style={styles.fallbackButton}>
+                <Text style={styles.fallbackButtonText}>Abrir configurações</Text>
+              </Pressable>
+            </>
+          )}
+          {status === 'error' && (
+            <Text style={styles.fallbackBody}>Não foi possível obter sua localização.</Text>
+          )}
+        </View>
+      )}
 
       <SafeAreaView edges={['top']} style={styles.floatHead}>
         <View style={styles.searchBar}>
@@ -167,7 +177,7 @@ export default function DiscoverScreen() {
           {markers.map((marker) => (
             <Pressable
               key={marker.id}
-              onPress={() => setSelectedId(marker.id)}
+              onPress={() => focusMarker(marker.id)}
               style={[styles.card, selectedId === marker.id && styles.cardSelected]}>
               <View
                 style={[styles.cardMedia, { backgroundColor: SPORT_TYPES[marker.sport].color }]}>
@@ -197,73 +207,45 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: DSColors.surface2,
   },
-  map: {
+  mapFallback: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    overflow: 'hidden',
-    ...(Platform.OS === 'web' ? ({ cursor: 'grab', userSelect: 'none' } as object) : null),
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: DSSpacing[2],
+    padding: DSSpacing[6],
   },
-  // Larger than the viewport so dragging never reveals an empty edge.
-  layer: {
-    position: 'absolute',
-    top: -PAN_LIMIT,
-    left: -PAN_LIMIT,
-    right: -PAN_LIMIT,
-    bottom: -PAN_LIMIT,
+  fallbackTitle: {
+    fontSize: DSText.lg,
+    fontWeight: '800',
+    color: DSColors.ink,
+    textAlign: 'center',
   },
-  blob: {
-    position: 'absolute',
-    borderRadius: 999,
+  fallbackBody: {
+    fontSize: DSText.sm,
+    fontWeight: '600',
+    color: DSColors.inkSecondary,
+    textAlign: 'center',
   },
-  blobPrimary: {
-    width: 260,
-    height: 220,
-    top: -60,
-    right: -60,
-    backgroundColor: DSColors.primaryTint,
-  },
-  blobAccent: {
-    width: 200,
-    height: 180,
-    bottom: 140,
-    left: -50,
-    backgroundColor: DSColors.accentTint,
-  },
-  roadH: {
-    position: 'absolute',
-    left: '-10%',
-    right: '-10%',
-    top: '46%',
-    height: 10,
-    backgroundColor: DSColors.surface,
-  },
-  roadV: {
-    position: 'absolute',
-    top: '-10%',
-    bottom: '-10%',
-    left: '58%',
-    width: 10,
-    backgroundColor: DSColors.surface,
-  },
-  you: {
-    position: 'absolute',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+  fallbackButton: {
+    marginTop: DSSpacing[2],
+    paddingHorizontal: 18,
+    height: 44,
+    borderRadius: DSRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: DSColors.primary,
-    borderWidth: 3,
-    borderColor: DSColors.inverse,
-    transform: [{ translateX: -11 }, { translateY: -11 }],
+  },
+  fallbackButtonText: {
+    color: DSColors.inverse,
+    fontWeight: '800',
   },
   floatHead: {
     gap: DSSpacing[2],
     paddingBottom: DSSpacing[2],
-    // The web-only tab bar (app-tabs.web.tsx) floats on top and isn't accounted
-    // for by safe-area insets, so push the header down manually there.
-    paddingTop: Platform.OS === 'web' ? 56 : 0,
   },
   searchBar: {
     flexDirection: 'row',

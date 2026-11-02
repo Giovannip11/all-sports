@@ -14,8 +14,13 @@ cp .env.example .env
 ## Rodar
 
 ```bash
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
+
+> Use `python -m uvicorn`, não o comando `uvicorn` direto — com Python 3.14 o
+> processo de reload roda em um subprocesso que não herda o diretório do projeto
+> no `sys.path`, e dá `ModuleNotFoundError: No module named 'app'`. Rodando via
+> `python -m` isso é resolvido.
 
 Docs em `http://localhost:8000/docs`.
 
@@ -25,7 +30,7 @@ Por padrão o Uvicorn só aceita conexões de `127.0.0.1` (a própria máquina).
 celular na mesma rede conseguir chamar a API, rode com `--host 0.0.0.0`:
 
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0
+python -m uvicorn app.main:app --reload --host 0.0.0.0
 ```
 
 E no frontend, aponte `EXPO_PUBLIC_API_URL` (em `frontend/.env`) pro IP local da sua

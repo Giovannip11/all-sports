@@ -18,8 +18,10 @@ export type DiscoverMarker = {
   subtitle: string;
   badge: string;
   visibility: 'public' | 'private';
-  /** Position within the map canvas, as percentages. */
+  /** Position within the stylized (web-only) map canvas, as percentages. */
   position: { x: `${number}%`; y: `${number}%` };
+  /** Degrees offset from the user's real location, for the native MapView. */
+  offset: { lat: number; lng: number };
 };
 
 export const DISCOVER_MARKERS: DiscoverMarker[] = [
@@ -32,6 +34,7 @@ export const DISCOVER_MARKERS: DiscoverMarker[] = [
     badge: 'Grátis',
     visibility: 'public',
     position: { x: '46%', y: '48%' },
+    offset: { lat: 0.003, lng: -0.001 },
   },
   {
     id: 'quadra-poliesportiva-parque',
@@ -42,6 +45,7 @@ export const DISCOVER_MARKERS: DiscoverMarker[] = [
     badge: 'Quadra',
     visibility: 'public',
     position: { x: '20%', y: '38%' },
+    offset: { lat: 0.006, lng: -0.006 },
   },
   {
     id: 'basquete-3x3',
@@ -52,6 +56,7 @@ export const DISCOVER_MARKERS: DiscoverMarker[] = [
     badge: 'R$ 10',
     visibility: 'public',
     position: { x: '72%', y: '36%' },
+    offset: { lat: 0.004, lng: 0.006 },
   },
   {
     id: 'volei-areia',
@@ -62,6 +67,7 @@ export const DISCOVER_MARKERS: DiscoverMarker[] = [
     badge: 'Campeonato',
     visibility: 'public',
     position: { x: '62%', y: '66%' },
+    offset: { lat: -0.004, lng: 0.003 },
   },
   {
     id: 'giro-parque',
@@ -72,6 +78,7 @@ export const DISCOVER_MARKERS: DiscoverMarker[] = [
     badge: 'Grupo',
     visibility: 'public',
     position: { x: '30%', y: '60%' },
+    offset: { lat: -0.002, lng: -0.005 },
   },
   {
     id: 'racha-fechado',
@@ -82,8 +89,9 @@ export const DISCOVER_MARKERS: DiscoverMarker[] = [
     badge: 'Privado',
     visibility: 'private',
     position: { x: '54%', y: '26%' },
+    offset: { lat: 0.007, lng: 0.001 },
   },
 ];
 
-/** Where "you" are on the map — mocked, will come from geolocation later. */
+/** Where "you" are on the stylized (web-only) map — mocked. */
 export const YOU_POSITION = { x: '50%', y: '50%' } as const;
