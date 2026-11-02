@@ -16,6 +16,8 @@
  * Itens de classificação ocupam uma linha: posição, nome, pontos.
  *
  * Tema: claro. As cores de interface vêm das variáveis.
+ * Ação (botão, criar, interruptor) é laranja. Link, foco, seleção e o ponto
+ * de “você” são azul.
  */
 
 /* ==========================================================================
@@ -34,14 +36,18 @@
   --as-line: #e3e6ea;
   --as-line-strong: #cfd4da;
 
-  --as-primary: #0c6e52;
-  --as-primary-pressed: #09543f;
-  --as-primary-tint: #e5f5ef;
-  --as-primary-tint-2: #cfe8de;
+  --as-primary: #0052ff;
+  --as-primary-pressed: #0040cc;
+  --as-primary-tint: #e6eeff;
+  --as-primary-tint-2: #c7d9ff;
 
-  --as-location: #1a73e8;
-  --as-location-pressed: #1558b0;
-  --as-location-tint: #e8f1fd;
+  --as-accent: #ff5500;
+  --as-accent-pressed: #cc4400;
+  --as-accent-tint: #ffe9df;
+
+  --as-location: #0052ff;
+  --as-location-pressed: #0040cc;
+  --as-location-tint: #e6eeff;
 
   --as-event: #e23b32;
   --as-place: #1a73e8;
@@ -422,13 +428,17 @@ a.as-event-card {
   font-size: var(--as-text-sm);
 }
 
-.as-btn--primary {
-  background: var(--as-primary);
+.as-btn--primary,
+button.as-btn.as-btn--primary,
+a.as-btn.as-btn--primary {
+  background: var(--as-accent);
   color: var(--as-inverse);
 }
 
-.as-btn--primary:hover {
-  background: var(--as-primary-pressed);
+.as-btn--primary:hover,
+button.as-btn.as-btn--primary:hover,
+a.as-btn.as-btn--primary:hover {
+  background: var(--as-accent-pressed);
 }
 
 .as-btn--primary:active {
@@ -445,21 +455,29 @@ a.as-event-card {
   background: var(--as-surface-2);
 }
 
-.as-btn--ghost {
+.as-btn--ghost,
+button.as-btn.as-btn--ghost,
+a.as-btn.as-btn--ghost {
   background: transparent;
   color: var(--as-primary);
 }
 
-.as-btn--ghost:hover {
+.as-btn--ghost:hover,
+button.as-btn.as-btn--ghost:hover,
+a.as-btn.as-btn--ghost:hover {
   background: var(--as-primary-tint);
 }
 
-.as-btn--danger {
+.as-btn--danger,
+button.as-btn.as-btn--danger,
+a.as-btn.as-btn--danger {
   background: var(--as-danger-tint);
   color: var(--as-danger);
 }
 
-.as-btn--location {
+.as-btn--location,
+button.as-btn.as-btn--location,
+a.as-btn.as-btn--location {
   background: var(--as-location);
   color: var(--as-inverse);
 }
@@ -531,7 +549,9 @@ a.as-event-card {
   background: var(--as-surface-2);
 }
 
-.as-textlink {
+.as-textlink,
+button.as-textlink,
+a.as-textlink {
   display: inline;
   padding: 0;
   color: var(--as-location);
@@ -539,7 +559,9 @@ a.as-event-card {
   font-size: inherit;
 }
 
-.as-textlink:hover {
+.as-textlink:hover,
+button.as-textlink:hover,
+a.as-textlink:hover {
   color: var(--as-location-pressed);
 }
 
@@ -753,7 +775,7 @@ a.as-event-card {
 
 .as-badge--hoje { background: var(--as-ink); color: var(--as-inverse); }
 .as-badge--gratis { background: var(--as-primary-tint); color: var(--as-primary); }
-.as-badge--preco { background: var(--as-location-tint); color: #174ea6; }
+.as-badge--preco { background: var(--as-location-tint); color: var(--as-primary-pressed); }
 .as-badge--lotado { background: var(--as-danger-tint); color: var(--as-danger); }
 .as-badge--ok { background: var(--as-primary-tint); color: var(--as-primary); }
 .as-badge--wait { background: var(--as-warning-tint); color: var(--as-warning); }
@@ -815,7 +837,7 @@ a.as-event-card {
 }
 
 .as-switch.is-on {
-  background: var(--as-primary);
+  background: var(--as-accent);
 }
 
 .as-switch.is-on::after {
@@ -881,18 +903,20 @@ a.as-event-card {
   color: var(--as-primary);
 }
 
-.as-tab--create {
+.as-tab--create,
+a.as-tab.as-tab--create {
   width: 48px;
   height: 48px;
   justify-self: center;
   border-radius: 12px;
-  background: var(--as-primary);
+  background: var(--as-accent);
   color: var(--as-inverse);
   box-shadow: var(--as-shadow-1);
 }
 
-.as-tab--create:hover {
-  background: var(--as-primary-pressed);
+.as-tab--create:hover,
+a.as-tab.as-tab--create:hover {
+  background: var(--as-accent-pressed);
   color: var(--as-inverse);
 }
 
@@ -1190,13 +1214,13 @@ a.as-event-card {
   border-radius: 50%;
   background: var(--as-location);
   border: 2.5px solid var(--as-inverse);
-  box-shadow: 0 0 0 6px rgba(26, 115, 232, 0.22);
+  box-shadow: 0 0 0 6px rgba(0, 82, 255, 0.22);
   animation: as-pulse 2.4s var(--as-ease) infinite;
 }
 
 @keyframes as-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(26, 115, 232, 0.35); }
-  100% { box-shadow: 0 0 0 14px rgba(26, 115, 232, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(0, 82, 255, 0.35); }
+  100% { box-shadow: 0 0 0 14px rgba(0, 82, 255, 0); }
 }
 
 .as-maptools {
@@ -1624,11 +1648,11 @@ a.as-mini {
 }
 
 .as-action--go {
-  color: var(--as-primary);
+  color: var(--as-accent);
 }
 
 .as-action--go .as-action__circle {
-  background: var(--as-primary);
+  background: var(--as-accent);
   color: var(--as-inverse);
 }
 
