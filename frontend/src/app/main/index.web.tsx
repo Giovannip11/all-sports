@@ -135,12 +135,15 @@ export default function DiscoverScreen() {
             returnKeyType="search"
             autoCorrect={false}
           />
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials(user?.name ?? '')}</Text>
+          </View>
           <Pressable
             onPress={handleSignOut}
-            style={styles.avatar}
+            style={styles.signOut}
             accessibilityRole="button"
             accessibilityLabel="Sair da conta">
-            <Text style={styles.avatarText}>{initials(user?.name ?? '')}</Text>
+            <Text style={styles.signOutText}>Sair</Text>
           </Pressable>
         </View>
 
@@ -301,6 +304,20 @@ const styles = StyleSheet.create({
     fontSize: DSText.xs,
     fontWeight: '800',
     color: DSColors.primary,
+  },
+  signOut: {
+    height: 32,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: DSColors.line,
+  },
+  signOutText: {
+    fontSize: DSText.xs,
+    fontWeight: '800',
+    color: DSColors.ink,
   },
   chipsRow: {
     paddingHorizontal: DSSpacing[4],
