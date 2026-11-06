@@ -17,7 +17,7 @@ import { AsField } from '@/components/design-system/as-field';
 import { DSColors, DSSpacing, DSText } from '@/constants/design-system';
 import { ApiError, type Role } from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
-import { isValidEmail, isValidPassword } from '@/utils/validation';
+import { isValidEmail, isValidPassword, isValidPhone } from '@/utils/validation';
 
 const SPORTS = ['Futebol', 'Corrida', 'Vôlei', 'Bike', 'Basquete', 'Natação'];
 
@@ -26,12 +26,14 @@ export default function SignupScreen() {
   const [role, setRole] = useState<Role>('practice');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [sports, setSports] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [sportsError, setSportsError] = useState('');
   const [formError, setFormError] = useState('');
@@ -47,6 +49,7 @@ export default function SignupScreen() {
   async function handleSubmit() {
     const nextNameError = name.trim().length >= 2 ? '' : 'Digite seu nome';
     const nextEmailError = isValidEmail(email) ? '' : 'Digite um e-mail válido';
+    const nextPhoneError = isValidPhone(phone) ? '' : 'Digite um telefone válido com DDD';
     const nextPasswordError = isValidPassword(password)
       ? ''
       : 'A senha precisa ter pelo menos 6 caracteres';
@@ -54,16 +57,19 @@ export default function SignupScreen() {
 
     setNameError(nextNameError);
     setEmailError(nextEmailError);
+    setPhoneError(nextPhoneError);
     setPasswordError(nextPasswordError);
     setSportsError(nextSportsError);
     setFormError('');
-    if (nextNameError || nextEmailError || nextPasswordError || nextSportsError) return;
+    if (nextNameError || nextEmailError || nextPhoneError || nextPasswordError || nextSportsError)
+      return;
 
     setLoading(true);
     try {
       const { needsEmailConfirmation } = await signUp({
         name: name.trim(),
         email: email.trim(),
+        phone: phone.trim(),
         password,
         role,
       });
@@ -174,6 +180,18 @@ export default function SignupScreen() {
                 if (emailError) setEmailError('');
               }}
               error={emailError}
+            />
+            <AsField
+              label="Telefone"
+              placeholder="(11) 99999-9999"
+              autoComplete="tel"
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={(value) => {
+                setPhone(value);
+                if (phoneError) setPhoneError('');
+              }}
+              error={phoneError}
             />
             <AsField
               label="Senha"

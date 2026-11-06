@@ -3,3 +3,4 @@ uvicorn[standard]
 pydantic-settings
 pydantic[email]
 supabase
+python-multipart

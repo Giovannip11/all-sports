@@ -38,6 +38,12 @@
         {
           "locationWhenInUsePermission": "O All Sports usa sua localização para mostrar eventos e quadras perto de você."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O All Sports usa suas fotos para definir a foto do seu perfil."
+        }
       ]
     ],
     "experiments": {

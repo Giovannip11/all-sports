@@ -9,6 +9,7 @@ class SignupRequest(BaseModel):
     name: str = Field(min_length=2)
     email: EmailStr
     password: str = Field(min_length=6)
+    phone: str = Field(min_length=8)
     role: Role = "practice"
 
 
@@ -22,6 +23,15 @@ class UserOut(BaseModel):
     email: str
     name: str
     role: Role
+    phone: str | None = None
+    bio: str | None = None
+    avatar_url: str | None = None
+
+
+class ProfileUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=2)
+    phone: str | None = Field(default=None, min_length=8)
+    bio: str | None = Field(default=None, max_length=280)
 
 
 class SessionOut(BaseModel):
