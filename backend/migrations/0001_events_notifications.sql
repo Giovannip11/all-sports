@@ -10,6 +10,14 @@
 -- linhas — por isso essa etapa é manual, uma única vez por ambiente (dev/produção).
 
 -- ---------------------------------------------------------------------------
+-- Alguns projetos Supabase já vêm com uma tabela "events" de um template
+-- diferente (com sport_id/venue_id, PostGIS, enums de status etc.), que não é
+-- o schema que a API deste projeto usa. Se for o seu caso e a tabela estiver
+-- vazia, descomente a linha abaixo para substituí-la pela nossa — senão pule.
+-- ---------------------------------------------------------------------------
+-- drop table if exists public.events cascade;
+
+-- ---------------------------------------------------------------------------
 -- events: rachas, encontros e torneios criados por um organizador
 -- ---------------------------------------------------------------------------
 create table if not exists public.events (

@@ -1,37 +1,29 @@
-// Web-only fallback: react-native-maps has no web renderer, so web keeps this
-// stylized, draggable mock map. Native (iOS/Android) uses ./index.tsx with a real MapView.
-import { router } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
-import {
-  PanResponder,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+// Web-only: react-native-maps has no web renderer, so web uses Leaflet +
+// OpenStreetMap tiles instead, fed by the same /map/markers endpoint and the
+// browser's real geolocation (via expo-location's web support).
+import { router, useFocusEffect } from 'expo-router';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 
 import { AsChip } from '@/components/design-system/as-chip';
-import { MapPin } from '@/components/discover/map-pin';
 import { DSColors, DSRadius, DSSpacing, DSText } from '@/constants/design-system';
-import { DISCOVER_MARKERS, SPORT_TYPES, YOU_POSITION, type SportKey } from '@/constants/discover';
+import { SPORT_TYPES, type SportKey } from '@/constants/discover';
 import { BottomTabInset } from '@/constants/theme';
+import { useUserLocation } from '@/hooks/use-user-location';
+import { ApiError, type ApiMapMarker } from '@/lib/api';
+import * as api from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
-
-/** How far the mocked map can be dragged from its origin, in px. */
-const PAN_LIMIT = 140;
-
-const clamp = (value: number) => Math.max(-PAN_LIMIT, Math.min(PAN_LIMIT, value));
 
 const SPORT_KEYS = Object.keys(SPORT_TYPES) as SportKey[];
 
 function normalize(text: string) {
   return text
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase();
 }
 
@@ -41,30 +33,74 @@ function initials(name: string) {
   return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase();
 }
 
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/** Teardrop pin as a plain Leaflet divIcon — no image assets to bundle. */
+function pinIcon(color: string, label: string, dashed: boolean, selected: boolean) {
+  const size = selected ? 34 : 26;
+  return L.divIcon({
+    className: 'as-map-pin',
+    html: `<div style="
+        width:${size}px;height:${size}px;background:${color};
+        border:2px ${dashed ? 'dashed' : 'solid'} #fff;border-radius:100% 100% 100% 2px;
+        transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;
+        box-shadow:0 2px 4px rgba(0,0,0,0.28);">
+        <span style="transform:rotate(45deg);color:#fff;font-weight:800;font-size:${selected ? 14 : 11}px;">
+          ${label}
+        </span>
+      </div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size],
+  });
+}
+
+const youIcon = L.divIcon({
+  className: 'as-map-you',
+  html: `<div style="width:16px;height:16px;border-radius:8px;background:${DSColors.primary};border:3px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+});
+
+/** Keeps the Leaflet map instance in sync with `center` without remounting it. */
+function FlyTo({ center }: { center: [number, number] | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) map.flyTo(center, map.getZoom(), { duration: 0.3 });
+  }, [center, map]);
+  return null;
+}
+
 export default function DiscoverScreen() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, accessToken } = useAuth();
+  const { region, status, retry } = useUserLocation();
   const [activeSports, setActiveSports] = useState<SportKey[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const panStart = useRef({ x: 0, y: 0 });
-  const panRef = useRef(pan);
-  panRef.current = pan;
+  const [allMarkers, setAllMarkers] = useState<ApiMapMarker[]>([]);
+  const [flySeq, setFlySeq] = useState(0);
+  const flyTarget = useRef<[number, number] | null>(null);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 4 || Math.abs(g.dy) > 4,
-      onPanResponderGrant: () => {
-        panStart.current = panRef.current;
-      },
-      onPanResponderMove: (_, g) =>
-        setPan({
-          x: clamp(panStart.current.x + g.dx),
-          y: clamp(panStart.current.y + g.dy),
-        }),
-      onPanResponderTerminationRequest: () => false,
-    }),
-  ).current;
+  const loadMarkers = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      setAllMarkers(await api.listMapMarkers(accessToken));
+    } catch (err) {
+      console.warn(err instanceof ApiError ? err.message : 'Erro ao carregar o mapa');
+    }
+  }, [accessToken]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadMarkers();
+    }, [loadMarkers]),
+  );
 
   function handleSignOut() {
     signOut();
@@ -79,61 +115,96 @@ export default function DiscoverScreen() {
 
   const markers = useMemo(() => {
     const term = normalize(query.trim());
-    return DISCOVER_MARKERS.filter((marker) => {
-      if (activeSports.length > 0 && !activeSports.includes(marker.sport)) return false;
+    return allMarkers.filter((marker) => {
+      if (activeSports.length > 0 && !activeSports.includes(marker.sport as SportKey)) {
+        return false;
+      }
       if (!term) return true;
-      const haystack = normalize(
-        `${marker.title} ${marker.subtitle} ${SPORT_TYPES[marker.sport].label}`,
-      );
+      const sportLabel = SPORT_TYPES[marker.sport as SportKey]?.label ?? marker.sport;
+      const haystack = normalize(`${marker.title} ${marker.location} ${sportLabel}`);
       return haystack.includes(term);
     });
-  }, [activeSports, query]);
+  }, [activeSports, allMarkers, query]);
+
+  function focusMarker(id: string) {
+    setSelectedId(id);
+    const marker = markers.find((m) => m.id === id);
+    if (!marker) return;
+    flyTarget.current = [marker.latitude, marker.longitude];
+    // Force a new array identity so FlyTo's effect re-runs even for the same marker.
+    setFlySeq((n) => n + 1);
+  }
 
   return (
     <View style={styles.screen}>
-      <View style={styles.map} {...panResponder.panHandlers}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedId(null)}>
-          <View
-            style={[styles.layer, { transform: [{ translateX: pan.x }, { translateY: pan.y }] }]}>
-            <View style={[styles.blob, styles.blobPrimary]} />
-            <View style={[styles.blob, styles.blobAccent]} />
-            <View style={styles.roadH} />
-            <View style={styles.roadV} />
-
-            <View
-              pointerEvents="none"
-              style={[styles.you, { left: YOU_POSITION.x, top: YOU_POSITION.y }]}
+      {region ? (
+        <View style={StyleSheet.absoluteFill}>
+          <MapContainer
+            center={[region.latitude, region.longitude]}
+            zoom={15}
+            style={{ width: '100%', height: '100%' }}
+            attributionControl={true}>
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
+            <FlyTo key={flySeq} center={flyTarget.current} />
+            <Marker position={[region.latitude, region.longitude]} icon={youIcon} />
+            {markers.map((marker) => {
+              const sportInfo = SPORT_TYPES[marker.sport as SportKey];
+              return (
+                <Marker
+                  key={marker.id}
+                  position={[marker.latitude, marker.longitude]}
+                  icon={pinIcon(
+                    sportInfo?.color ?? DSColors.inkTertiary,
+                    (sportInfo?.label ?? marker.sport).charAt(0),
+                    marker.visibility === 'private',
+                    selectedId === marker.id,
+                  )}
+                  eventHandlers={{ click: () => setSelectedId(marker.id) }}>
+                  <Popup>
+                    <strong>{marker.title}</strong>
+                    <br />
+                    {marker.location} · {formatDate(marker.starts_at)}
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </MapContainer>
+        </View>
+      ) : (
+        <View style={styles.mapFallback}>
+          {status === 'loading' && <ActivityIndicator color={DSColors.primary} />}
+          {status === 'denied' && (
+            <>
+              <Text style={styles.fallbackTitle}>Precisamos da sua localização</Text>
+              <Text style={styles.fallbackBody}>
+                Permita o acesso à localização nas configurações do navegador (ícone de cadeado na
+                barra de endereço) para ver o mapa da sua região.
+              </Text>
+              <Pressable onPress={retry} style={styles.fallbackButton}>
+                <Text style={styles.fallbackButtonText}>Tentar novamente</Text>
+              </Pressable>
+            </>
+          )}
+          {status === 'error' && (
+            <>
+              <Text style={styles.fallbackBody}>Não foi possível obter sua localização.</Text>
+              <Pressable onPress={retry} style={styles.fallbackButton}>
+                <Text style={styles.fallbackButtonText}>Tentar novamente</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      )}
 
-            {markers.map((marker) => (
-              <MapPin
-                key={marker.id}
-                x={marker.position.x}
-                y={marker.position.y}
-                color={SPORT_TYPES[marker.sport].color}
-                label={SPORT_TYPES[marker.sport].label.charAt(0)}
-                dashed={marker.visibility === 'private'}
-                selected={selectedId === marker.id}
-                caption={selectedId === marker.id ? marker.title : undefined}
-                onPress={() =>
-                  setSelectedId((current) => (current === marker.id ? null : marker.id))
-                }
-              />
-            ))}
-          </View>
-        </Pressable>
-      </View>
-
-      <SafeAreaView edges={['top']} style={styles.floatHead}>
+      <SafeAreaView edges={['top']} style={styles.floatHead} pointerEvents="box-none">
         <View style={styles.searchBar}>
-          <TextInput
-            style={styles.searchInput}
+          <TextInputWeb
             placeholder="Esporte, local ou racha"
-            placeholderTextColor={DSColors.inkSecondary}
             value={query}
             onChangeText={setQuery}
-            returnKeyType="search"
-            autoCorrect={false}
           />
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initials(user?.name ?? '')}</Text>
@@ -163,31 +234,46 @@ export default function DiscoverScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      <View style={[styles.sheet, { paddingBottom: BottomTabInset + DSSpacing[3] }]}>
+      <View
+        style={[styles.sheet, { paddingBottom: BottomTabInset + DSSpacing[3] }]}
+        pointerEvents="box-none">
         <Text style={styles.sheetTitle}>Perto de você</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.cards}>
-          {markers.map((marker) => (
-            <Pressable
-              key={marker.id}
-              onPress={() => setSelectedId(marker.id)}
-              style={[styles.card, selectedId === marker.id && styles.cardSelected]}>
-              <View
-                style={[styles.cardMedia, { backgroundColor: SPORT_TYPES[marker.sport].color }]}>
-                <Text style={styles.cardBadge}>{marker.badge}</Text>
-              </View>
-              <View style={styles.cardBody}>
-                <Text style={styles.cardTitle} numberOfLines={1}>
-                  {marker.title}
-                </Text>
-                <Text style={styles.cardSubtitle} numberOfLines={1}>
-                  {marker.subtitle}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
+          {markers.map((marker) => {
+            const sportInfo = SPORT_TYPES[marker.sport as SportKey];
+            const full = marker.participants_count >= marker.max_participants;
+            return (
+              <Pressable
+                key={marker.id}
+                onPress={() => focusMarker(marker.id)}
+                style={[styles.card, selectedId === marker.id && styles.cardSelected]}>
+                <View
+                  style={[
+                    styles.cardMedia,
+                    { backgroundColor: sportInfo?.color ?? DSColors.inkTertiary },
+                  ]}>
+                  <Text style={styles.cardBadge}>
+                    {marker.visibility === 'private'
+                      ? 'Privado'
+                      : full
+                        ? 'Lotado'
+                        : (sportInfo?.label ?? marker.sport)}
+                  </Text>
+                </View>
+                <View style={styles.cardBody}>
+                  <Text style={styles.cardTitle} numberOfLines={1}>
+                    {marker.title}
+                  </Text>
+                  <Text style={styles.cardSubtitle} numberOfLines={1}>
+                    {marker.location} · {formatDate(marker.starts_at)}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
           {markers.length === 0 && (
             <Text style={styles.empty}>Nenhum resultado para esse filtro.</Text>
           )}
@@ -197,78 +283,83 @@ export default function DiscoverScreen() {
   );
 }
 
+/** Thin wrapper so the search input keeps the same look without pulling
+ * react-native's TextInput through the Leaflet/DOM tree. */
+function TextInputWeb({
+  placeholder,
+  value,
+  onChangeText,
+}: {
+  placeholder: string;
+  value: string;
+  onChangeText: (text: string) => void;
+}) {
+  return (
+    <input
+      style={{
+        flex: 1,
+        height: '100%',
+        border: 'none',
+        outline: 'none',
+        background: 'transparent',
+        fontSize: DSText.md,
+        fontWeight: 700,
+        color: DSColors.ink,
+      }}
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => onChangeText(e.target.value)}
+    />
+  );
+}
+
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: DSColors.surface2,
   },
-  map: {
+  mapFallback: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    overflow: 'hidden',
-    ...(Platform.OS === 'web' ? ({ cursor: 'grab', userSelect: 'none' } as object) : null),
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: DSSpacing[2],
+    padding: DSSpacing[6],
   },
-  // Larger than the viewport so dragging never reveals an empty edge.
-  layer: {
-    position: 'absolute',
-    top: -PAN_LIMIT,
-    left: -PAN_LIMIT,
-    right: -PAN_LIMIT,
-    bottom: -PAN_LIMIT,
+  fallbackTitle: {
+    fontSize: DSText.lg,
+    fontWeight: '800',
+    color: DSColors.ink,
+    textAlign: 'center',
   },
-  blob: {
-    position: 'absolute',
-    borderRadius: 999,
+  fallbackBody: {
+    fontSize: DSText.sm,
+    fontWeight: '600',
+    color: DSColors.inkSecondary,
+    textAlign: 'center',
   },
-  blobPrimary: {
-    width: 260,
-    height: 220,
-    top: -60,
-    right: -60,
-    backgroundColor: DSColors.primaryTint,
-  },
-  blobAccent: {
-    width: 200,
-    height: 180,
-    bottom: 140,
-    left: -50,
-    backgroundColor: DSColors.accentTint,
-  },
-  roadH: {
-    position: 'absolute',
-    left: '-10%',
-    right: '-10%',
-    top: '46%',
-    height: 10,
-    backgroundColor: DSColors.surface,
-  },
-  roadV: {
-    position: 'absolute',
-    top: '-10%',
-    bottom: '-10%',
-    left: '58%',
-    width: 10,
-    backgroundColor: DSColors.surface,
-  },
-  you: {
-    position: 'absolute',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+  fallbackButton: {
+    marginTop: DSSpacing[2],
+    paddingHorizontal: 18,
+    height: 44,
+    borderRadius: DSRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: DSColors.primary,
-    borderWidth: 3,
-    borderColor: DSColors.inverse,
-    transform: [{ translateX: -11 }, { translateY: -11 }],
+  },
+  fallbackButtonText: {
+    color: DSColors.inverse,
+    fontWeight: '800',
   },
   floatHead: {
     gap: DSSpacing[2],
     paddingBottom: DSSpacing[2],
     // The web-only tab bar (app-tabs.web.tsx) floats on top and isn't accounted
     // for by safe-area insets, so push the header down manually there.
-    paddingTop: Platform.OS === 'web' ? 56 : 0,
+    paddingTop: 56,
   },
   searchBar: {
     flexDirection: 'row',
@@ -284,13 +375,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
-  },
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    fontSize: DSText.md,
-    fontWeight: '700',
-    color: DSColors.ink,
   },
   avatar: {
     width: 32,

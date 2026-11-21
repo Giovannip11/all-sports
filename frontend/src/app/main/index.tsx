@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -16,9 +16,11 @@ import MapView, { Marker } from 'react-native-maps';
 import { AsChip } from '@/components/design-system/as-chip';
 import { MarkerPin } from '@/components/discover/marker-pin';
 import { DSColors, DSRadius, DSSpacing, DSText } from '@/constants/design-system';
-import { DISCOVER_MARKERS, SPORT_TYPES, type SportKey } from '@/constants/discover';
+import { SPORT_TYPES, type SportKey } from '@/constants/discover';
 import { BottomTabInset } from '@/constants/theme';
 import { useUserLocation } from '@/hooks/use-user-location';
+import { ApiError, type ApiMapMarker } from '@/lib/api';
+import * as api from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
 
 const SPORT_KEYS = Object.keys(SPORT_TYPES) as SportKey[];
@@ -36,13 +38,40 @@ function initials(name: string) {
   return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase();
 }
 
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function DiscoverScreen() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, accessToken } = useAuth();
   const { region, status } = useUserLocation();
   const [activeSports, setActiveSports] = useState<SportKey[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [allMarkers, setAllMarkers] = useState<ApiMapMarker[]>([]);
   const mapRef = useRef<MapView>(null);
+
+  const loadMarkers = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      setAllMarkers(await api.listMapMarkers(accessToken));
+    } catch (err) {
+      // Keep whatever markers were already loaded — the map still works,
+      // just without the latest refresh.
+      console.warn(err instanceof ApiError ? err.message : 'Erro ao carregar o mapa');
+    }
+  }, [accessToken]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadMarkers();
+    }, [loadMarkers]),
+  );
 
   function handleSignOut() {
     signOut();
@@ -57,25 +86,25 @@ export default function DiscoverScreen() {
 
   const markers = useMemo(() => {
     const term = normalize(query.trim());
-    return DISCOVER_MARKERS.filter((marker) => {
-      if (activeSports.length > 0 && !activeSports.includes(marker.sport)) return false;
+    return allMarkers.filter((marker) => {
+      if (activeSports.length > 0 && !activeSports.includes(marker.sport as SportKey)) {
+        return false;
+      }
       if (!term) return true;
-      const haystack = normalize(
-        `${marker.title} ${marker.subtitle} ${SPORT_TYPES[marker.sport].label}`,
-      );
+      const sportLabel = SPORT_TYPES[marker.sport as SportKey]?.label ?? marker.sport;
+      const haystack = normalize(`${marker.title} ${marker.location} ${sportLabel}`);
       return haystack.includes(term);
     });
-  }, [activeSports, query]);
+  }, [activeSports, allMarkers, query]);
 
   function focusMarker(id: string) {
     setSelectedId(id);
-    if (!region) return;
-    const marker = DISCOVER_MARKERS.find((m) => m.id === id);
-    if (!marker) return;
+    const marker = markers.find((m) => m.id === id);
+    if (!marker || !region) return;
     mapRef.current?.animateToRegion(
       {
-        latitude: region.latitude + marker.offset.lat,
-        longitude: region.longitude + marker.offset.lng,
+        latitude: marker.latitude,
+        longitude: marker.longitude,
         latitudeDelta: region.latitudeDelta,
         longitudeDelta: region.longitudeDelta,
       },
@@ -93,24 +122,24 @@ export default function DiscoverScreen() {
           showsUserLocation
           showsMyLocationButton
           onPress={() => setSelectedId(null)}>
-          {markers.map((marker) => (
-            <Marker
-              key={marker.id}
-              coordinate={{
-                latitude: region.latitude + marker.offset.lat,
-                longitude: region.longitude + marker.offset.lng,
-              }}
-              title={marker.title}
-              description={marker.subtitle}
-              onPress={() => setSelectedId(marker.id)}>
-              <MarkerPin
-                color={SPORT_TYPES[marker.sport].color}
-                label={SPORT_TYPES[marker.sport].label.charAt(0)}
-                dashed={marker.visibility === 'private'}
-                selected={selectedId === marker.id}
-              />
-            </Marker>
-          ))}
+          {markers.map((marker) => {
+            const sportInfo = SPORT_TYPES[marker.sport as SportKey];
+            return (
+              <Marker
+                key={marker.id}
+                coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
+                title={marker.title}
+                description={marker.location}
+                onPress={() => setSelectedId(marker.id)}>
+                <MarkerPin
+                  color={sportInfo?.color ?? DSColors.inkTertiary}
+                  label={(sportInfo?.label ?? marker.sport).charAt(0)}
+                  dashed={marker.visibility === 'private'}
+                  selected={selectedId === marker.id}
+                />
+              </Marker>
+            );
+          })}
         </MapView>
       ) : (
         <View style={styles.mapFallback}>
@@ -177,25 +206,38 @@ export default function DiscoverScreen() {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.cards}>
-          {markers.map((marker) => (
-            <Pressable
-              key={marker.id}
-              onPress={() => focusMarker(marker.id)}
-              style={[styles.card, selectedId === marker.id && styles.cardSelected]}>
-              <View
-                style={[styles.cardMedia, { backgroundColor: SPORT_TYPES[marker.sport].color }]}>
-                <Text style={styles.cardBadge}>{marker.badge}</Text>
-              </View>
-              <View style={styles.cardBody}>
-                <Text style={styles.cardTitle} numberOfLines={1}>
-                  {marker.title}
-                </Text>
-                <Text style={styles.cardSubtitle} numberOfLines={1}>
-                  {marker.subtitle}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
+          {markers.map((marker) => {
+            const sportInfo = SPORT_TYPES[marker.sport as SportKey];
+            const full = marker.participants_count >= marker.max_participants;
+            return (
+              <Pressable
+                key={marker.id}
+                onPress={() => focusMarker(marker.id)}
+                style={[styles.card, selectedId === marker.id && styles.cardSelected]}>
+                <View
+                  style={[
+                    styles.cardMedia,
+                    { backgroundColor: sportInfo?.color ?? DSColors.inkTertiary },
+                  ]}>
+                  <Text style={styles.cardBadge}>
+                    {marker.visibility === 'private'
+                      ? 'Privado'
+                      : full
+                        ? 'Lotado'
+                        : sportInfo?.label ?? marker.sport}
+                  </Text>
+                </View>
+                <View style={styles.cardBody}>
+                  <Text style={styles.cardTitle} numberOfLines={1}>
+                    {marker.title}
+                  </Text>
+                  <Text style={styles.cardSubtitle} numberOfLines={1}>
+                    {marker.location} · {formatDate(marker.starts_at)}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
           {markers.length === 0 && (
             <Text style={styles.empty}>Nenhum resultado para esse filtro.</Text>
           )}

@@ -25,6 +25,34 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## Rodando no celular (com mapa real)
+
+Este projeto usa `react-native-maps`, que **não é suportado pelo app Expo Go** (desde o SDK 51 o Expo Go não inclui mais módulos de mapa nativos) — abrir o app pelo Expo Go faz o app fechar sozinho ao tentar renderizar o mapa.
+
+Para testar com o mapa real em um iPhone/Android físico, é preciso instalar um **dev client** (build próprio do app, feito uma vez):
+
+```bash
+npx expo install expo-dev-client   # já incluído neste projeto
+npx eas build --profile development --platform ios
+```
+
+Isso gera um link de instalação (precisa de conta gratuita no [expo.dev](https://expo.dev) e, para iOS, de um dispositivo registrado no seu Apple Developer / Ad Hoc). Instale esse build no celular no lugar do Expo Go.
+
+Depois, para rodar o servidor de desenvolvimento, use `--dev-client` em vez de abrir o Expo Go:
+
+```bash
+npx expo start --dev-client --tunnel
+```
+
+### Testando sem build nativo (web)
+
+Se só quer validar fluxos de login/eventos/notificações sem precisar do build nativo, rode no navegador — não usa `react-native-maps` (tem um mapa estilizado próprio para web que já usa a localização real do navegador):
+
+```bash
+npx expo start --tunnel
+# pressione "w" para abrir no navegador
+```
+
 ## Get a fresh project
 
 When you're ready, run:

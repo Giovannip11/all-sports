@@ -37,8 +37,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     response = await fetch(`${API_URL}${path}`, {
       ...options,
       headers: isFormData
-        ? options.headers
-        : { 'Content-Type': 'application/json', ...options.headers },
+        ? { 'ngrok-skip-browser-warning': 'true', ...options.headers }
+        : {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
+            ...options.headers,
+          },
     });
   } catch {
     throw new ApiError(
@@ -219,6 +223,31 @@ export function confirmPresence(accessToken: string, eventId: string) {
 
 export function myEventHistory(accessToken: string) {
   return request<ApiEvent[]>('/events/me/history', { headers: authHeaders(accessToken) });
+}
+
+// ---------------------------------------------------------------------------
+// Mapa
+// ---------------------------------------------------------------------------
+
+export type ApiMapMarker = {
+  id: string;
+  sport: string;
+  title: string;
+  location: string;
+  latitude: number;
+  longitude: number;
+  starts_at: string;
+  visibility: Visibility;
+  status: EventStatus;
+  participants_count: number;
+  max_participants: number;
+  is_organizer: boolean;
+  is_participant: boolean;
+};
+
+export function listMapMarkers(accessToken: string, sport?: string) {
+  const query = sport ? `?sport=${encodeURIComponent(sport)}` : '';
+  return request<ApiMapMarker[]>(`/map/markers${query}`, { headers: authHeaders(accessToken) });
 }
 
 // ---------------------------------------------------------------------------

@@ -87,11 +87,10 @@ def create_event(payload: EventCreate, token: str = Depends(bearer_token)) -> Ev
     return _event_out(row, participants_count=0, joined_ids=set(), user_id=user.id)
 
 
-@router.get("", response_model=list[EventOut])
-def list_events(sport: str | None = None, token: str = Depends(bearer_token)) -> list[EventOut]:
-    user = authenticated_user(token)
-    admin = get_supabase_admin_client()
-
+def _visible_events_for(admin, user_id: str, sport: str | None = None) -> list[dict]:
+    """Public active events (optionally filtered by sport), plus events the
+    user organizes or has joined — the same visibility rule used for the
+    events list and the map markers."""
     public_query = (
         admin.table("events").select("*").eq("visibility", "public").eq("status", "active")
     )
@@ -99,19 +98,27 @@ def list_events(sport: str | None = None, token: str = Depends(bearer_token)) ->
         public_query = public_query.eq("sport", sport)
     public_rows = public_query.execute().data
 
-    own_rows = admin.table("events").select("*").eq("organizer_id", user.id).execute().data
+    own_rows = admin.table("events").select("*").eq("organizer_id", user_id).execute().data
 
-    joined_ids = _joined_event_ids(admin, user.id)
+    joined_ids = _joined_event_ids(admin, user_id)
     joined_rows: list[dict] = []
     if joined_ids:
         joined_rows = admin.table("events").select("*").in_("id", list(joined_ids)).execute().data
 
     by_id = {row["id"]: row for row in [*public_rows, *own_rows, *joined_rows]}
-    counts = _counts_for(admin, list(by_id.keys()))
+    return list(by_id.values())
 
-    events = [
-        _event_out(row, counts.get(row["id"], 0), joined_ids, user.id) for row in by_id.values()
-    ]
+
+@router.get("", response_model=list[EventOut])
+def list_events(sport: str | None = None, token: str = Depends(bearer_token)) -> list[EventOut]:
+    user = authenticated_user(token)
+    admin = get_supabase_admin_client()
+
+    rows = _visible_events_for(admin, user.id, sport)
+    joined_ids = _joined_event_ids(admin, user.id)
+    counts = _counts_for(admin, [row["id"] for row in rows])
+
+    events = [_event_out(row, counts.get(row["id"], 0), joined_ids, user.id) for row in rows]
     events.sort(key=lambda e: e.starts_at)
     return events
 
