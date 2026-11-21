@@ -34,6 +34,10 @@ def _user_out(user, role_fallback: Role = "practice") -> UserOut:
         bio=metadata.get("bio"),
         avatar_url=metadata.get("avatar_url"),
         location_consent=bool(metadata.get("location_consent", False)),
+        birth_date=metadata.get("birth_date"),
+        cpf=metadata.get("cpf"),
+        gender=metadata.get("gender"),
+        country=metadata.get("country"),
     )
 
 
@@ -58,6 +62,10 @@ def signup(payload: SignupRequest) -> SignupResponse:
                         "name": payload.name,
                         "role": payload.role,
                         "phone": payload.phone,
+                        "birth_date": payload.birth_date.isoformat(),
+                        "cpf": payload.cpf,
+                        "gender": payload.gender,
+                        "country": payload.country,
                         "location_consent": payload.location_consent,
                         "terms_accepted_at": datetime.now(timezone.utc).isoformat(),
                     }

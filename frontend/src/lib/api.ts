@@ -8,6 +8,7 @@ const DEFAULT_API_URL = Platform.select({
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API_URL;
 
 export type Role = 'practice' | 'organize';
+export type Gender = 'masculino' | 'feminino' | 'outro' | 'prefiro_nao_informar';
 
 export type ApiUser = {
   id: string;
@@ -18,6 +19,10 @@ export type ApiUser = {
   bio: string | null;
   avatar_url: string | null;
   location_consent: boolean;
+  birth_date: string | null;
+  cpf: string | null;
+  gender: Gender | null;
+  country: string | null;
 };
 
 export type ApiSession = {
@@ -66,6 +71,10 @@ export function signup(input: {
   email: string;
   password: string;
   phone: string;
+  birth_date: string;
+  cpf: string;
+  gender: Gender;
+  country: string;
   role: Role;
   accepted_terms: boolean;
   location_consent: boolean;

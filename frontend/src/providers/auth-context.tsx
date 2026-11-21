@@ -7,6 +7,10 @@ type SignUpInput = {
   email: string;
   password: string;
   phone: string;
+  birth_date: string;
+  cpf: string;
+  gender: api.Gender;
+  country: string;
   role: api.Role;
   accepted_terms: boolean;
   location_consent: boolean;

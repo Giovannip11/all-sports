@@ -15,11 +15,28 @@ import { AsButton } from '@/components/design-system/as-button';
 import { AsChip } from '@/components/design-system/as-chip';
 import { AsField } from '@/components/design-system/as-field';
 import { DSColors, DSSpacing, DSText } from '@/constants/design-system';
-import { ApiError, type Role } from '@/lib/api';
+import { ApiError, type Gender, type Role } from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
-import { isValidEmail, isValidPassword, isValidPhone } from '@/utils/validation';
+import {
+  formatCPF,
+  isOldEnough,
+  isValidCPF,
+  isValidEmail,
+  isValidPassword,
+  isValidPhone,
+  parseBirthDate,
+} from '@/utils/validation';
 
 const SPORTS = ['Futebol', 'Corrida', 'Vôlei', 'Bike', 'Basquete', 'Natação'];
+
+const GENDERS: { value: Gender; label: string }[] = [
+  { value: 'masculino', label: 'Masculino' },
+  { value: 'feminino', label: 'Feminino' },
+  { value: 'outro', label: 'Outro' },
+  { value: 'prefiro_nao_informar', label: 'Prefiro não informar' },
+];
+
+const COUNTRIES = ['Brasil', 'Portugal', 'Outro'];
 
 export default function SignupScreen() {
   const { signUp } = useAuth();
@@ -28,6 +45,10 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [cpf, setCpf] = useState('');
+  const [gender, setGender] = useState<Gender | null>(null);
+  const [country, setCountry] = useState('Brasil');
   const [sports, setSports] = useState<string[]>([]);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [locationConsent, setLocationConsent] = useState(false);
@@ -37,6 +58,9 @@ export default function SignupScreen() {
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [birthDateError, setBirthDateError] = useState('');
+  const [cpfError, setCpfError] = useState('');
+  const [genderError, setGenderError] = useState('');
   const [sportsError, setSportsError] = useState('');
   const [termsError, setTermsError] = useState('');
   const [formError, setFormError] = useState('');
@@ -56,6 +80,14 @@ export default function SignupScreen() {
     const nextPasswordError = isValidPassword(password)
       ? ''
       : 'A senha precisa ter pelo menos 6 caracteres';
+    const isoBirthDate = parseBirthDate(birthDate);
+    const nextBirthDateError = !isoBirthDate
+      ? 'Use o formato DD/MM/AAAA'
+      : !isOldEnough(isoBirthDate)
+        ? 'Você precisa ter pelo menos 16 anos'
+        : '';
+    const nextCpfError = isValidCPF(cpf) ? '' : 'Digite um CPF válido';
+    const nextGenderError = gender ? '' : 'Selecione uma opção';
     const nextSportsError = sports.length > 0 ? '' : 'Escolha pelo menos um esporte';
     const nextTermsError = acceptedTerms ? '' : 'Você precisa aceitar os termos de uso';
 
@@ -63,6 +95,9 @@ export default function SignupScreen() {
     setEmailError(nextEmailError);
     setPhoneError(nextPhoneError);
     setPasswordError(nextPasswordError);
+    setBirthDateError(nextBirthDateError);
+    setCpfError(nextCpfError);
+    setGenderError(nextGenderError);
     setSportsError(nextSportsError);
     setTermsError(nextTermsError);
     setFormError('');
@@ -71,8 +106,13 @@ export default function SignupScreen() {
       nextEmailError ||
       nextPhoneError ||
       nextPasswordError ||
+      nextBirthDateError ||
+      nextCpfError ||
+      nextGenderError ||
       nextSportsError ||
-      nextTermsError
+      nextTermsError ||
+      !isoBirthDate ||
+      !gender
     )
       return;
 
@@ -83,6 +123,10 @@ export default function SignupScreen() {
         email: email.trim(),
         phone: phone.trim(),
         password,
+        birth_date: isoBirthDate,
+        cpf: cpf.replace(/\D/g, ''),
+        gender,
+        country,
         role,
         accepted_terms: acceptedTerms,
         location_consent: locationConsent,
@@ -219,6 +263,60 @@ export default function SignupScreen() {
               }}
               error={passwordError}
             />
+            <AsField
+              label="Data de nascimento"
+              placeholder="DD/MM/AAAA"
+              keyboardType="numbers-and-punctuation"
+              value={birthDate}
+              onChangeText={(value) => {
+                setBirthDate(value);
+                if (birthDateError) setBirthDateError('');
+              }}
+              error={birthDateError}
+            />
+            <AsField
+              label="CPF"
+              placeholder="000.000.000-00"
+              keyboardType="number-pad"
+              value={cpf}
+              onChangeText={(value) => {
+                setCpf(formatCPF(value));
+                if (cpfError) setCpfError('');
+              }}
+              error={cpfError}
+            />
+
+            <View style={styles.sportsField}>
+              <Text style={styles.label}>Gênero</Text>
+              <View style={styles.chips}>
+                {GENDERS.map((option) => (
+                  <AsChip
+                    key={option.value}
+                    label={option.label}
+                    active={gender === option.value}
+                    onPress={() => {
+                      setGender(option.value);
+                      if (genderError) setGenderError('');
+                    }}
+                  />
+                ))}
+              </View>
+              {genderError ? <Text style={styles.sportsError}>{genderError}</Text> : null}
+            </View>
+
+            <View style={styles.sportsField}>
+              <Text style={styles.label}>País</Text>
+              <View style={styles.chips}>
+                {COUNTRIES.map((option) => (
+                  <AsChip
+                    key={option}
+                    label={option}
+                    active={country === option}
+                    onPress={() => setCountry(option)}
+                  />
+                ))}
+              </View>
+            </View>
 
             <View style={styles.sportsField}>
               <Text style={styles.label}>Esportes</Text>
