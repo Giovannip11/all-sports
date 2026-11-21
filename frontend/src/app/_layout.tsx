@@ -17,6 +17,9 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="signup" />
           <Stack.Screen name="main" />
+          <Stack.Screen name="create-event" />
+          <Stack.Screen name="event/[id]" />
+          <Stack.Screen name="notifications" />
         </Stack>
       </AuthProvider>
     </ThemeProvider>

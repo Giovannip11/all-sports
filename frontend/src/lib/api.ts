@@ -17,6 +17,7 @@ export type ApiUser = {
   phone: string | null;
   bio: string | null;
   avatar_url: string | null;
+  location_consent: boolean;
 };
 
 export type ApiSession = {
@@ -62,6 +63,8 @@ export function signup(input: {
   password: string;
   phone: string;
   role: Role;
+  accepted_terms: boolean;
+  location_consent: boolean;
 }) {
   return request<{ user: ApiUser; session: ApiSession | null; message: string }>('/auth/signup', {
     method: 'POST',
@@ -105,5 +108,146 @@ export function uploadAvatar(
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
     body: formData,
+  });
+}
+
+export function deleteAccount(accessToken: string) {
+  return request<void>('/auth/me', {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Eventos
+// ---------------------------------------------------------------------------
+
+export type Visibility = 'public' | 'private';
+export type EventStatus = 'active' | 'cancelled';
+
+export type ApiEvent = {
+  id: string;
+  organizer_id: string;
+  organizer_name: string;
+  sport: string;
+  title: string;
+  description: string | null;
+  location: string;
+  latitude: number;
+  longitude: number;
+  starts_at: string;
+  max_participants: number;
+  visibility: Visibility;
+  status: EventStatus;
+  participants_count: number;
+  is_participant: boolean;
+  is_organizer: boolean;
+  created_at: string;
+};
+
+export type ApiParticipant = {
+  user_id: string;
+  name: string;
+  status: 'confirmed' | 'cancelled';
+  presence_confirmed: boolean;
+  joined_at: string;
+};
+
+export type ApiEventDetail = ApiEvent & { participants: ApiParticipant[] };
+
+export type EventInput = {
+  sport: string;
+  title: string;
+  description?: string;
+  location: string;
+  latitude: number;
+  longitude: number;
+  starts_at: string;
+  max_participants: number;
+  visibility: Visibility;
+};
+
+function authHeaders(accessToken: string) {
+  return { Authorization: `Bearer ${accessToken}` };
+}
+
+export function listEvents(accessToken: string, sport?: string) {
+  const query = sport ? `?sport=${encodeURIComponent(sport)}` : '';
+  return request<ApiEvent[]>(`/events${query}`, { headers: authHeaders(accessToken) });
+}
+
+export function getEvent(accessToken: string, eventId: string) {
+  return request<ApiEventDetail>(`/events/${eventId}`, { headers: authHeaders(accessToken) });
+}
+
+export function createEvent(accessToken: string, input: EventInput) {
+  return request<ApiEvent>('/events', {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateEvent(accessToken: string, eventId: string, patch: Partial<EventInput> & { status?: EventStatus }) {
+  return request<ApiEvent>(`/events/${eventId}`, {
+    method: 'PATCH',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify(patch),
+  });
+}
+
+export function joinEvent(accessToken: string, eventId: string) {
+  return request<ApiEvent>(`/events/${eventId}/join`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+  });
+}
+
+export function leaveEvent(accessToken: string, eventId: string) {
+  return request<ApiEvent>(`/events/${eventId}/leave`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+  });
+}
+
+export function confirmPresence(accessToken: string, eventId: string) {
+  return request<ApiEvent>(`/events/${eventId}/presence`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+  });
+}
+
+export function myEventHistory(accessToken: string) {
+  return request<ApiEvent[]>('/events/me/history', { headers: authHeaders(accessToken) });
+}
+
+// ---------------------------------------------------------------------------
+// Notificações
+// ---------------------------------------------------------------------------
+
+export type ApiNotification = {
+  id: string;
+  event_id: string | null;
+  type: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+};
+
+export function listNotifications(accessToken: string) {
+  return request<ApiNotification[]>('/notifications', { headers: authHeaders(accessToken) });
+}
+
+export function markNotificationRead(accessToken: string, notificationId: string) {
+  return request<ApiNotification>(`/notifications/${notificationId}/read`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+  });
+}
+
+export function markAllNotificationsRead(accessToken: string) {
+  return request<{ ok: boolean }>('/notifications/read-all', {
+    method: 'POST',
+    headers: authHeaders(accessToken),
   });
 }

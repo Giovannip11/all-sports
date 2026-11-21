@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -33,7 +34,7 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 export default function ProfileScreen() {
-  const { user, updateProfile, uploadAvatar } = useAuth();
+  const { user, updateProfile, uploadAvatar, deleteAccount } = useAuth();
 
   const [name, setName] = useState(user?.name ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
@@ -46,6 +47,10 @@ export default function ProfileScreen() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [formError, setFormError] = useState('');
   const [savedMessage, setSavedMessage] = useState('');
+
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   async function handlePickAvatar() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -96,6 +101,18 @@ export default function ProfileScreen() {
       setFormError(error instanceof ApiError ? error.message : 'Erro ao salvar o perfil');
     } finally {
       setSavingProfile(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteError('');
+    setDeletingAccount(true);
+    try {
+      await deleteAccount();
+      router.replace('/');
+    } catch (error) {
+      setDeleteError(error instanceof ApiError ? error.message : 'Erro ao excluir a conta');
+      setDeletingAccount(false);
     }
   }
 
@@ -203,6 +220,43 @@ export default function ProfileScreen() {
               loading={savingProfile}
               onPress={handleSave}
             />
+
+            <View style={styles.dangerZone}>
+              <Text style={styles.dangerTitle}>Zona de risco</Text>
+              {deleteError ? (
+                <View style={styles.formError}>
+                  <Text style={styles.formErrorText}>{deleteError}</Text>
+                </View>
+              ) : null}
+              {!confirmingDelete ? (
+                <Pressable onPress={() => setConfirmingDelete(true)} hitSlop={8}>
+                  <Text style={styles.dangerLink}>Excluir minha conta</Text>
+                </Pressable>
+              ) : (
+                <View style={styles.dangerConfirm}>
+                  <Text style={styles.dangerConfirmText}>
+                    Isso apaga sua conta, foto, eventos que você organiza e suas inscrições, sem
+                    volta. Tem certeza?
+                  </Text>
+                  <View style={styles.dangerActions}>
+                    <AsButton
+                      label="Cancelar"
+                      variant="secondary"
+                      style={styles.dangerActionButton}
+                      onPress={() => setConfirmingDelete(false)}
+                      disabled={deletingAccount}
+                    />
+                    <AsButton
+                      label={deletingAccount ? 'Excluindo...' : 'Sim, excluir'}
+                      variant="primary"
+                      style={styles.dangerActionButton}
+                      loading={deletingAccount}
+                      onPress={handleDeleteAccount}
+                    />
+                  </View>
+                </View>
+              )}
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -315,5 +369,38 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: DSColors.primary,
     textAlign: 'center',
+  },
+  dangerZone: {
+    marginTop: DSSpacing[4],
+    paddingTop: DSSpacing[4],
+    borderTopWidth: 1,
+    borderTopColor: DSColors.line,
+    gap: DSSpacing[2],
+  },
+  dangerTitle: {
+    fontSize: DSText.sm,
+    fontWeight: '800',
+    color: DSColors.inkSecondary,
+  },
+  dangerLink: {
+    fontSize: DSText.sm,
+    fontWeight: '800',
+    color: DSColors.danger,
+  },
+  dangerConfirm: {
+    gap: DSSpacing[2],
+  },
+  dangerConfirmText: {
+    fontSize: DSText.sm,
+    fontWeight: '600',
+    color: DSColors.ink,
+    lineHeight: 19,
+  },
+  dangerActions: {
+    flexDirection: 'row',
+    gap: DSSpacing[2],
+  },
+  dangerActionButton: {
+    flex: 1,
   },
 });

@@ -20,6 +20,14 @@ export default function AppTabs() {
         />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="events">
+        <NativeTabs.Trigger.Label>Eventos</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'calendar', selected: 'calendar.circle.fill' }}
+          md={{ default: 'event', selected: 'event' }}
+        />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="profile">
         <NativeTabs.Trigger.Label>Perfil</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon

@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 Role = Literal["practice", "organize"]
 
@@ -11,6 +11,15 @@ class SignupRequest(BaseModel):
     password: str = Field(min_length=6)
     phone: str = Field(min_length=8)
     role: Role = "practice"
+    accepted_terms: bool
+    location_consent: bool = False
+
+    @field_validator("accepted_terms")
+    @classmethod
+    def must_accept_terms(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError("É necessário aceitar os termos de uso para criar a conta")
+        return value
 
 
 class LoginRequest(BaseModel):
@@ -26,6 +35,7 @@ class UserOut(BaseModel):
     phone: str | None = None
     bio: str | None = None
     avatar_url: str | None = None
+    location_consent: bool = False
 
 
 class ProfileUpdateRequest(BaseModel):

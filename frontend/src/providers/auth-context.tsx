@@ -8,6 +8,8 @@ type SignUpInput = {
   password: string;
   phone: string;
   role: api.Role;
+  accepted_terms: boolean;
+  location_consent: boolean;
 };
 
 type ProfilePatch = { name?: string; phone?: string; bio?: string };
@@ -21,6 +23,7 @@ type AuthContextValue = {
   signOut: () => void;
   updateProfile: (patch: ProfilePatch) => Promise<void>;
   uploadAvatar: (file: { uri: string; name: string; type: string }) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -62,9 +65,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(updated);
   }
 
+  async function deleteAccount() {
+    if (!accessToken) throw new Error('Não autenticado');
+    await api.deleteAccount(accessToken);
+    signOut();
+  }
+
   return (
     <AuthContext.Provider
-      value={{ user, accessToken, signIn, signUp, signOut, updateProfile, uploadAvatar }}>
+      value={{
+        user,
+        accessToken,
+        signIn,
+        signUp,
+        signOut,
+        updateProfile,
+        uploadAvatar,
+        deleteAccount,
+      }}>
       {children}
     </AuthContext.Provider>
   );

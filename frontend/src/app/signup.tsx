@@ -29,6 +29,8 @@ export default function SignupScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [sports, setSports] = useState<string[]>([]);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [locationConsent, setLocationConsent] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [nameError, setNameError] = useState('');
@@ -36,6 +38,7 @@ export default function SignupScreen() {
   const [phoneError, setPhoneError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [sportsError, setSportsError] = useState('');
+  const [termsError, setTermsError] = useState('');
   const [formError, setFormError] = useState('');
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
@@ -54,14 +57,23 @@ export default function SignupScreen() {
       ? ''
       : 'A senha precisa ter pelo menos 6 caracteres';
     const nextSportsError = sports.length > 0 ? '' : 'Escolha pelo menos um esporte';
+    const nextTermsError = acceptedTerms ? '' : 'Você precisa aceitar os termos de uso';
 
     setNameError(nextNameError);
     setEmailError(nextEmailError);
     setPhoneError(nextPhoneError);
     setPasswordError(nextPasswordError);
     setSportsError(nextSportsError);
+    setTermsError(nextTermsError);
     setFormError('');
-    if (nextNameError || nextEmailError || nextPhoneError || nextPasswordError || nextSportsError)
+    if (
+      nextNameError ||
+      nextEmailError ||
+      nextPhoneError ||
+      nextPasswordError ||
+      nextSportsError ||
+      nextTermsError
+    )
       return;
 
     setLoading(true);
@@ -72,6 +84,8 @@ export default function SignupScreen() {
         phone: phone.trim(),
         password,
         role,
+        accepted_terms: acceptedTerms,
+        location_consent: locationConsent,
       });
 
       if (needsEmailConfirmation) {
@@ -220,6 +234,39 @@ export default function SignupScreen() {
               </View>
               {sportsError ? <Text style={styles.sportsError}>{sportsError}</Text> : null}
             </View>
+
+            <View style={styles.consentField}>
+              <Pressable
+                style={styles.checkboxRow}
+                onPress={() => {
+                  setAcceptedTerms((v) => !v);
+                  if (termsError) setTermsError('');
+                }}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: acceptedTerms }}>
+                <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
+                  {acceptedTerms && <Text style={styles.checkboxMark}>✓</Text>}
+                </View>
+                <Text style={styles.checkboxLabel}>
+                  Li e aceito os termos de uso e a política de privacidade.
+                </Text>
+              </Pressable>
+              {termsError ? <Text style={styles.sportsError}>{termsError}</Text> : null}
+
+              <Pressable
+                style={styles.checkboxRow}
+                onPress={() => setLocationConsent((v) => !v)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: locationConsent }}>
+                <View style={[styles.checkbox, locationConsent && styles.checkboxChecked]}>
+                  {locationConsent && <Text style={styles.checkboxMark}>✓</Text>}
+                </View>
+                <Text style={styles.checkboxLabel}>
+                  Autorizo o uso da minha localização para mostrar eventos e quadras perto de
+                  mim (opcional, pode ser ativado depois).
+                </Text>
+              </Pressable>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
 
@@ -325,6 +372,41 @@ const styles = StyleSheet.create({
     fontSize: DSText.xs,
     fontWeight: '700',
     color: DSColors.danger,
+  },
+  consentField: {
+    gap: 10,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: DSColors.lineStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  checkboxChecked: {
+    backgroundColor: DSColors.primary,
+    borderColor: DSColors.primary,
+  },
+  checkboxMark: {
+    color: DSColors.inverse,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 14,
+  },
+  checkboxLabel: {
+    flex: 1,
+    fontSize: DSText.xs,
+    fontWeight: '600',
+    color: DSColors.inkSecondary,
+    lineHeight: 16,
   },
   formError: {
     padding: 12,

@@ -1,8 +1,10 @@
 import uuid
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from supabase_auth.errors import AuthApiError
 
+from app.core.security import authenticated_user, bearer_token
 from app.core.supabase import get_supabase_admin_client, get_supabase_client
 from app.schemas.auth import (
     LoginRequest,
@@ -31,20 +33,8 @@ def _user_out(user, role_fallback: Role = "practice") -> UserOut:
         phone=metadata.get("phone"),
         bio=metadata.get("bio"),
         avatar_url=metadata.get("avatar_url"),
+        location_consent=bool(metadata.get("location_consent", False)),
     )
-
-
-def _authenticated_user(token: str):
-    client = get_supabase_client()
-    try:
-        result = client.auth.get_user(token)
-    except AuthApiError as exc:
-        raise HTTPException(status_code=401, detail="Sessão inválida ou expirada") from exc
-
-    if result is None or result.user is None:
-        raise HTTPException(status_code=401, detail="Sessão inválida ou expirada")
-
-    return result.user
 
 
 def _session_out(session) -> SessionOut:
@@ -53,13 +43,6 @@ def _session_out(session) -> SessionOut:
         refresh_token=session.refresh_token,
         expires_in=session.expires_in,
     )
-
-
-def _bearer_token(authorization: str = Header(...)) -> str:
-    scheme, _, token = authorization.partition(" ")
-    if scheme.lower() != "bearer" or not token:
-        raise HTTPException(status_code=401, detail="Token ausente ou inválido")
-    return token
 
 
 @router.post("/signup", response_model=SignupResponse, status_code=status.HTTP_201_CREATED)
@@ -75,6 +58,8 @@ def signup(payload: SignupRequest) -> SignupResponse:
                         "name": payload.name,
                         "role": payload.role,
                         "phone": payload.phone,
+                        "location_consent": payload.location_consent,
+                        "terms_accepted_at": datetime.now(timezone.utc).isoformat(),
                     }
                 },
             }
@@ -120,14 +105,14 @@ def login(payload: LoginRequest) -> LoginResponse:
 
 
 @router.get("/me", response_model=UserOut)
-def me(token: str = Depends(_bearer_token)) -> UserOut:
-    user = _authenticated_user(token)
+def me(token: str = Depends(bearer_token)) -> UserOut:
+    user = authenticated_user(token)
     return _user_out(user)
 
 
 @router.patch("/me", response_model=UserOut)
-def update_me(payload: ProfileUpdateRequest, token: str = Depends(_bearer_token)) -> UserOut:
-    user = _authenticated_user(token)
+def update_me(payload: ProfileUpdateRequest, token: str = Depends(bearer_token)) -> UserOut:
+    user = authenticated_user(token)
     metadata = dict(user.user_metadata or {})
 
     patch = payload.model_dump(exclude_none=True)
@@ -140,7 +125,7 @@ def update_me(payload: ProfileUpdateRequest, token: str = Depends(_bearer_token)
 
 @router.post("/me/avatar", response_model=UserOut)
 async def upload_avatar(
-    token: str = Depends(_bearer_token), file: UploadFile | None = None
+    token: str = Depends(bearer_token), file: UploadFile | None = None
 ) -> UserOut:
     if file is None:
         raise HTTPException(status_code=400, detail="Envie um arquivo de imagem")
@@ -149,7 +134,7 @@ async def upload_avatar(
     if extension is None:
         raise HTTPException(status_code=400, detail="Formato de imagem não suportado")
 
-    user = _authenticated_user(token)
+    user = authenticated_user(token)
     contents = await file.read()
 
     admin = get_supabase_admin_client()
@@ -163,3 +148,24 @@ async def upload_avatar(
     metadata["avatar_url"] = avatar_url
     updated = admin.auth.admin.update_user_by_id(user.id, {"user_metadata": metadata})
     return _user_out(updated.user, role_fallback=metadata.get("role", "practice"))
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_me(token: str = Depends(bearer_token)) -> None:
+    """Exclui a conta e os dados do usuário (LGPD-02).
+
+    Remove o usuário do Supabase Auth; isso também apaga, em cascata, seus
+    eventos organizados, inscrições e notificações (ver migração
+    0001_events_notifications.sql), pois as tabelas referenciam auth.users
+    com ON DELETE CASCADE.
+    """
+    user = authenticated_user(token)
+    admin = get_supabase_admin_client()
+
+    avatar_url = (user.user_metadata or {}).get("avatar_url")
+    if avatar_url:
+        path = "/".join(avatar_url.split(f"/{AVATAR_BUCKET}/")[-1:])
+        if path:
+            admin.storage.from_(AVATAR_BUCKET).remove([path])
+
+    admin.auth.admin.delete_user(user.id)
