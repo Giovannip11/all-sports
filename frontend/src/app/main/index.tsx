@@ -172,6 +172,15 @@ export default function DiscoverScreen() {
             returnKeyType="search"
             autoCorrect={false}
           />
+          {user?.role === 'organize' && (
+            <Pressable
+              onPress={() => router.push('/create-event')}
+              style={styles.createButton}
+              accessibilityRole="button"
+              accessibilityLabel="Criar evento">
+              <Text style={styles.createButtonText}>+ Criar</Text>
+            </Pressable>
+          )}
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initials(user?.name ?? '')}</Text>
           </View>
@@ -313,6 +322,19 @@ const styles = StyleSheet.create({
     fontSize: DSText.md,
     fontWeight: '700',
     color: DSColors.ink,
+  },
+  createButton: {
+    height: 32,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: DSColors.accent,
+  },
+  createButtonText: {
+    fontSize: DSText.xs,
+    fontWeight: '800',
+    color: DSColors.inverse,
   },
   avatar: {
     width: 32,

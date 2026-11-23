@@ -206,6 +206,15 @@ export default function DiscoverScreen() {
             value={query}
             onChangeText={setQuery}
           />
+          {user?.role === 'organize' && (
+            <Pressable
+              onPress={() => router.push('/create-event')}
+              style={styles.createButton}
+              accessibilityRole="button"
+              accessibilityLabel="Criar evento">
+              <Text style={styles.createButtonText}>+ Criar</Text>
+            </Pressable>
+          )}
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initials(user?.name ?? '')}</Text>
           </View>
@@ -357,9 +366,6 @@ const styles = StyleSheet.create({
   floatHead: {
     gap: DSSpacing[2],
     paddingBottom: DSSpacing[2],
-    // The web-only tab bar (app-tabs.web.tsx) floats on top and isn't accounted
-    // for by safe-area insets, so push the header down manually there.
-    paddingTop: 56,
   },
   searchBar: {
     flexDirection: 'row',
@@ -375,6 +381,19 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
+  },
+  createButton: {
+    height: 32,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: DSColors.accent,
+  },
+  createButtonText: {
+    fontSize: DSText.xs,
+    fontWeight: '800',
+    color: DSColors.inverse,
   },
   avatar: {
     width: 32,

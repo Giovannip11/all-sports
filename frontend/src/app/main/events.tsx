@@ -2,7 +2,6 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -228,9 +227,6 @@ const styles = StyleSheet.create({
     borderBottomColor: DSColors.line,
     gap: DSSpacing[2],
     paddingBottom: DSSpacing[2],
-    // The web-only tab bar (app-tabs.web.tsx) floats on top and isn't accounted
-    // for by safe-area insets, so push the header down manually there.
-    paddingTop: Platform.OS === 'web' ? 56 : 0,
   },
   headerRow: {
     flexDirection: 'row',
