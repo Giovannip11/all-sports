@@ -245,6 +245,76 @@ export function myEventHistory(accessToken: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Sorteio de times
+// ---------------------------------------------------------------------------
+
+export type TeamMode = 'random' | 'balanced';
+
+export type ApiTeamMember = {
+  user_id: string;
+  name: string;
+  events_played: number;
+};
+
+export type ApiTeam = {
+  id: string;
+  name: string;
+  position: number;
+  members: ApiTeamMember[];
+};
+
+export type ApiTeamDraw = {
+  id: string;
+  mode: TeamMode;
+  team_count: number;
+  created_at: string;
+  teams: ApiTeam[];
+};
+
+export function getTeams(accessToken: string, eventId: string) {
+  return request<ApiTeamDraw>(`/events/${eventId}/teams`, { headers: authHeaders(accessToken) });
+}
+
+export function drawTeams(
+  accessToken: string,
+  eventId: string,
+  input: { team_count: number; mode: TeamMode },
+) {
+  return request<ApiTeamDraw>(`/events/${eventId}/teams/draw`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify(input),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Chat do evento
+// ---------------------------------------------------------------------------
+
+export type ApiMessage = {
+  id: string;
+  sender_id: string | null;
+  sender_name: string;
+  body: string;
+  created_at: string;
+  is_mine: boolean;
+};
+
+export function listMessages(accessToken: string, eventId: string) {
+  return request<ApiMessage[]>(`/events/${eventId}/messages`, {
+    headers: authHeaders(accessToken),
+  });
+}
+
+export function sendMessage(accessToken: string, eventId: string, body: string) {
+  return request<ApiMessage>(`/events/${eventId}/messages`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ body }),
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Mapa
 // ---------------------------------------------------------------------------
 

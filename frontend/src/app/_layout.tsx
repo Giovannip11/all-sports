@@ -1,16 +1,16 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider as NavigationThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AuthProvider } from '@/providers/auth-context';
+import { ThemeProvider as AppThemeProvider, useTheme } from '@/providers/theme-context';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+function Navigation() {
+  const { isDark } = useTheme();
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <NavigationThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <AuthProvider>
         <AnimatedSplashOverlay />
         <Stack screenOptions={{ headerShown: false }}>
@@ -21,8 +21,18 @@ export default function RootLayout() {
           <Stack.Screen name="event/[id]" />
           <Stack.Screen name="notifications" />
           <Stack.Screen name="plans" />
+          <Stack.Screen name="team-draw" />
+          <Stack.Screen name="event-chat" />
         </Stack>
       </AuthProvider>
-    </ThemeProvider>
+    </NavigationThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AppThemeProvider>
+      <Navigation />
+    </AppThemeProvider>
   );
 }

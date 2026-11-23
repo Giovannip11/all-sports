@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -16,11 +16,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AsButton } from '@/components/design-system/as-button';
 import { AsField } from '@/components/design-system/as-field';
-import { DSColors, DSRadius, DSSpacing, DSText } from '@/constants/design-system';
+import { DSRadius, DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
 import { BottomTabInset } from '@/constants/theme';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
+import { useDSColors, useTheme, type ThemeMode } from '@/providers/theme-context';
 import { isValidPhone } from '@/utils/validation';
+
+const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
+  { value: 'system', label: 'Sistema' },
+  { value: 'light', label: 'Claro' },
+  { value: 'dark', label: 'Escuro' },
+];
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -42,6 +49,9 @@ const PLAN_LABEL: Record<string, string> = {
 
 export default function ProfileScreen() {
   const { user, updateProfile, uploadAvatar, deleteAccount } = useAuth();
+  const { mode, setMode } = useTheme();
+  const colors = useDSColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [name, setName] = useState(user?.name ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
@@ -153,7 +163,7 @@ export default function ProfileScreen() {
                 )}
                 {uploadingAvatar && (
                   <View style={styles.avatarOverlay}>
-                    <ActivityIndicator color={DSColors.inverse} />
+                    <ActivityIndicator color={colors.inverse} />
                   </View>
                 )}
               </Pressable>
@@ -244,6 +254,29 @@ export default function ProfileScreen() {
               onPress={handleSave}
             />
 
+            <View style={styles.themeField}>
+              <Text style={styles.themeLabel}>Aparência</Text>
+              <View style={styles.themeOptions}>
+                {THEME_OPTIONS.map((option) => (
+                  <Pressable
+                    key={option.value}
+                    onPress={() => setMode(option.value)}
+                    style={[
+                      styles.themeOption,
+                      mode === option.value && styles.themeOptionActive,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.themeOptionLabel,
+                        mode === option.value && styles.themeOptionLabelActive,
+                      ]}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
             <View style={styles.dangerZone}>
               <Text style={styles.dangerTitle}>Zona de risco</Text>
               {deleteError ? (
@@ -287,7 +320,8 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(DSColors: DSColorSet) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: DSColors.surface,
@@ -416,6 +450,40 @@ const styles = StyleSheet.create({
     color: DSColors.primary,
     textAlign: 'center',
   },
+  themeField: {
+    gap: DSSpacing[2],
+  },
+  themeLabel: {
+    fontSize: DSText.sm,
+    fontWeight: '800',
+    color: DSColors.ink,
+  },
+  themeOptions: {
+    flexDirection: 'row',
+    gap: DSSpacing[2],
+    padding: 4,
+    backgroundColor: DSColors.surface2,
+    borderRadius: 10,
+  },
+  themeOption: {
+    flex: 1,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+  },
+  themeOptionActive: {
+    backgroundColor: DSColors.surface,
+  },
+  themeOptionLabel: {
+    fontSize: DSText.sm,
+    fontWeight: '700',
+    color: DSColors.inkSecondary,
+  },
+  themeOptionLabelActive: {
+    color: DSColors.ink,
+    fontWeight: '800',
+  },
   dangerZone: {
     marginTop: DSSpacing[4],
     paddingTop: DSSpacing[4],
@@ -449,4 +517,5 @@ const styles = StyleSheet.create({
   dangerActionButton: {
     flex: 1,
   },
-});
+  });
+}

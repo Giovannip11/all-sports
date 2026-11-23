@@ -1,18 +1,21 @@
 import { Image } from 'expo-image';
 import { Link, router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AsButton } from '@/components/design-system/as-button';
 import { AsField } from '@/components/design-system/as-field';
-import { DSColors, DSSpacing, DSText } from '@/constants/design-system';
+import { DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
+import { useDSColors } from '@/providers/theme-context';
 import { isValidEmail, isValidPassword } from '@/utils/validation';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const colors = useDSColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -120,7 +123,8 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(DSColors: DSColorSet) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: DSColors.bg,
@@ -188,4 +192,5 @@ const styles = StyleSheet.create({
     color: DSColors.danger,
     textAlign: 'center',
   },
-});
+  });
+}

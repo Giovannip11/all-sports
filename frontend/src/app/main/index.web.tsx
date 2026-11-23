@@ -10,13 +10,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 
 import { AsChip } from '@/components/design-system/as-chip';
-import { DSColors, DSRadius, DSSpacing, DSText } from '@/constants/design-system';
+import { DSColors, DSRadius, DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
 import { SPORT_TYPES, type SportKey } from '@/constants/discover';
 import { BottomTabInset } from '@/constants/theme';
 import { useUserLocation } from '@/hooks/use-user-location';
 import { ApiError, type ApiMapMarker } from '@/lib/api';
 import * as api from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
+import { useDSColors } from '@/providers/theme-context';
 
 const SPORT_KEYS = Object.keys(SPORT_TYPES) as SportKey[];
 
@@ -80,6 +81,8 @@ function FlyTo({ center }: { center: [number, number] | null }) {
 export default function DiscoverScreen() {
   const { user, signOut, accessToken } = useAuth();
   const { region, status, retry } = useUserLocation();
+  const themeColors = useDSColors();
+  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
   const [activeSports, setActiveSports] = useState<SportKey[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -303,6 +306,7 @@ function TextInputWeb({
   value: string;
   onChangeText: (text: string) => void;
 }) {
+  const colors = useDSColors();
   return (
     <input
       style={{
@@ -313,7 +317,7 @@ function TextInputWeb({
         background: 'transparent',
         fontSize: DSText.md,
         fontWeight: 700,
-        color: DSColors.ink,
+        color: colors.ink,
       }}
       placeholder={placeholder}
       value={value}
@@ -322,7 +326,8 @@ function TextInputWeb({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(DSColors: DSColorSet) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: DSColors.surface2,
@@ -503,4 +508,5 @@ const styles = StyleSheet.create({
     color: DSColors.inkSecondary,
     paddingVertical: 20,
   },
-});
+  });
+}

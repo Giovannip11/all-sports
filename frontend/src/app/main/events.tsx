@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -11,12 +11,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AsChip } from '@/components/design-system/as-chip';
-import { DSColors, DSRadius, DSSpacing, DSText } from '@/constants/design-system';
+import { DSRadius, DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
 import { SPORT_TYPES, type SportKey } from '@/constants/discover';
 import { BottomTabInset } from '@/constants/theme';
 import { ApiError, type ApiEvent } from '@/lib/api';
 import * as api from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
+import { useDSColors } from '@/providers/theme-context';
 
 const SPORT_KEYS = Object.keys(SPORT_TYPES) as SportKey[];
 
@@ -32,6 +33,8 @@ function formatDate(iso: string) {
 
 export default function EventsScreen() {
   const { user, accessToken } = useAuth();
+  const colors = useDSColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [sport, setSport] = useState<SportKey | null>(null);
   const [events, setEvents] = useState<ApiEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,7 +141,7 @@ export default function EventsScreen() {
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator color={DSColors.primary} />
+          <ActivityIndicator color={colors.primary} />
         </View>
       ) : (
         <ScrollView
@@ -158,7 +161,7 @@ export default function EventsScreen() {
                   <View
                     style={[
                       styles.sportDot,
-                      { backgroundColor: sportInfo?.color ?? DSColors.inkTertiary },
+                      { backgroundColor: sportInfo?.color ?? colors.inkTertiary },
                     ]}
                   />
                   <Text style={styles.cardTitle} numberOfLines={1}>
@@ -216,7 +219,8 @@ export default function EventsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(DSColors: DSColorSet) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: DSColors.surface2,
@@ -410,4 +414,5 @@ const styles = StyleSheet.create({
     color: DSColors.danger,
     textAlign: 'center',
   },
-});
+  });
+}

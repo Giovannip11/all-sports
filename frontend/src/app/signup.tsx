@@ -1,5 +1,5 @@
 import { Link, router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,9 +14,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AsButton } from '@/components/design-system/as-button';
 import { AsChip } from '@/components/design-system/as-chip';
 import { AsField } from '@/components/design-system/as-field';
-import { DSColors, DSSpacing, DSText } from '@/constants/design-system';
+import { DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
 import { ApiError, type Gender, type Role } from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
+import { useDSColors } from '@/providers/theme-context';
 import {
   formatCPF,
   isOldEnough,
@@ -40,6 +41,8 @@ const COUNTRIES = ['Brasil', 'Portugal', 'Outro'];
 
 export default function SignupScreen() {
   const { signUp } = useAuth();
+  const colors = useDSColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [role, setRole] = useState<Role>('practice');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -382,7 +385,8 @@ export default function SignupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(DSColors: DSColorSet) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: DSColors.surface,
@@ -544,4 +548,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: DSSpacing[3],
   },
-});
+  });
+}

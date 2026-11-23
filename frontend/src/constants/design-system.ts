@@ -4,7 +4,7 @@
  * for CTAs — the single action the screen wants you to take.
  */
 
-export const DSColors = {
+export const DSColorsLight = {
   ink: '#111111',
   inkSecondary: '#5c6370',
   inkTertiary: '#9aa0a8',
@@ -28,6 +28,37 @@ export const DSColors = {
   danger: '#c4322b',
   dangerTint: '#fdeceb',
 } as const;
+
+export const DSColorsDark = {
+  ink: '#f2f3f5',
+  inkSecondary: '#aab0bb',
+  inkTertiary: '#767c87',
+  inverse: '#0b0c0e',
+
+  bg: '#0b0c0e',
+  surface: '#17181b',
+  surface2: '#1f2125',
+  line: '#2b2d32',
+  lineStrong: '#3a3d43',
+
+  primary: '#4d8bff',
+  primaryPressed: '#6fa0ff',
+  primaryTint: '#162440',
+  primaryTint2: '#1f345c',
+
+  accent: '#ff6a2e',
+  accentPressed: '#ff8450',
+  accentTint: '#3a2015',
+
+  danger: '#f27a74',
+  dangerTint: '#3a1917',
+} as const;
+
+export type DSColorSet = { [K in keyof typeof DSColorsLight]: string };
+
+/** Default/fallback palette for screens not yet wired to the theme — always
+ * light, so untouched screens render exactly as before dark mode existed. */
+export const DSColors = DSColorsLight;
 
 export const DSSpacing = {
   1: 4,

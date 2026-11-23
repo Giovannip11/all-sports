@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
 
-import { DSColors, DSRadius, DSText } from '@/constants/design-system';
+import { DSRadius, DSText, type DSColorSet } from '@/constants/design-system';
+import { useDSColors } from '@/providers/theme-context';
 
 export type AsButtonVariant = 'primary' | 'secondary' | 'ghost';
 
@@ -21,6 +23,8 @@ export function AsButton({
   style,
   ...rest
 }: AsButtonProps) {
+  const colors = useDSColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isDisabled = disabled || loading;
 
   return (
@@ -42,7 +46,7 @@ export function AsButton({
       {...rest}>
       {loading && (
         <ActivityIndicator
-          color={variant === 'primary' ? DSColors.inverse : DSColors.primary}
+          color={variant === 'primary' ? colors.inverse : colors.primary}
           style={styles.spinner}
         />
       )}
@@ -59,53 +63,55 @@ export function AsButton({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    height: 48,
-    paddingHorizontal: 18,
-    borderRadius: DSRadius.lg + 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  spinner: {
-    marginRight: 8,
-  },
-  block: {
-    alignSelf: 'stretch',
-  },
-  primary: {
-    backgroundColor: DSColors.accent,
-  },
-  primaryPressed: {
-    backgroundColor: DSColors.accentPressed,
-  },
-  secondary: {
-    backgroundColor: DSColors.surface,
-    borderWidth: 1,
-    borderColor: DSColors.lineStrong,
-  },
-  ghost: {
-    backgroundColor: 'transparent',
-  },
-  disabled: {
-    opacity: 0.45,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  label: {
-    fontSize: DSText.md,
-    fontWeight: '800',
-    letterSpacing: -0.2,
-  },
-  labelPrimary: {
-    color: DSColors.inverse,
-  },
-  labelSecondary: {
-    color: DSColors.ink,
-  },
-  labelGhost: {
-    color: DSColors.primary,
-  },
-});
+function createStyles(DSColors: DSColorSet) {
+  return StyleSheet.create({
+    base: {
+      height: 48,
+      paddingHorizontal: 18,
+      borderRadius: DSRadius.lg + 3,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+    },
+    spinner: {
+      marginRight: 8,
+    },
+    block: {
+      alignSelf: 'stretch',
+    },
+    primary: {
+      backgroundColor: DSColors.accent,
+    },
+    primaryPressed: {
+      backgroundColor: DSColors.accentPressed,
+    },
+    secondary: {
+      backgroundColor: DSColors.surface,
+      borderWidth: 1,
+      borderColor: DSColors.lineStrong,
+    },
+    ghost: {
+      backgroundColor: 'transparent',
+    },
+    disabled: {
+      opacity: 0.45,
+    },
+    pressed: {
+      opacity: 0.85,
+    },
+    label: {
+      fontSize: DSText.md,
+      fontWeight: '800',
+      letterSpacing: -0.2,
+    },
+    labelPrimary: {
+      color: DSColors.inverse,
+    },
+    labelSecondary: {
+      color: DSColors.ink,
+    },
+    labelGhost: {
+      color: DSColors.primary,
+    },
+  });
+}

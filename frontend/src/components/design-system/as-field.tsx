@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -8,7 +8,8 @@ import {
   type TextInputProps,
 } from 'react-native';
 
-import { DSColors, DSRadius, DSText } from '@/constants/design-system';
+import { DSRadius, DSText, type DSColorSet } from '@/constants/design-system';
+import { useDSColors } from '@/providers/theme-context';
 
 export type AsFieldProps = TextInputProps & {
   label: string;
@@ -29,6 +30,8 @@ export function AsField({
   style,
   ...rest
 }: AsFieldProps) {
+  const colors = useDSColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [hidden, setHidden] = useState(isPassword);
 
   return (
@@ -49,7 +52,7 @@ export function AsField({
             error && styles.inputError,
             style,
           ]}
-          placeholderTextColor={DSColors.inkTertiary}
+          placeholderTextColor={colors.inkTertiary}
           secureTextEntry={isPassword ? hidden : undefined}
           {...rest}
         />
@@ -73,66 +76,68 @@ export function AsField({
   );
 }
 
-const styles = StyleSheet.create({
-  field: {
-    gap: 6,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  label: {
-    fontSize: DSText.sm,
-    fontWeight: '800',
-    color: DSColors.ink,
-  },
-  labelAction: {
-    fontSize: DSText.sm,
-    fontWeight: '800',
-    color: DSColors.primary,
-  },
-  control: {
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  input: {
-    height: 48,
-    paddingHorizontal: 14,
-    borderRadius: DSRadius.md,
-    borderWidth: 1,
-    borderColor: DSColors.lineStrong,
-    backgroundColor: DSColors.surface,
-    color: DSColors.ink,
-    fontSize: DSText.md,
-    fontWeight: '600',
-  },
-  inputWithAccessory: {
-    paddingRight: 76,
-  },
-  inputError: {
-    borderColor: DSColors.danger,
-  },
-  accessory: {
-    position: 'absolute',
-    right: 10,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-  },
-  accessoryLabel: {
-    fontSize: DSText.xs,
-    fontWeight: '800',
-    color: DSColors.inkSecondary,
-  },
-  help: {
-    fontSize: DSText.xs,
-    fontWeight: '600',
-    color: DSColors.inkSecondary,
-  },
-  error: {
-    fontSize: DSText.xs,
-    fontWeight: '700',
-    color: DSColors.danger,
-  },
-});
+function createStyles(DSColors: DSColorSet) {
+  return StyleSheet.create({
+    field: {
+      gap: 6,
+    },
+    labelRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    label: {
+      fontSize: DSText.sm,
+      fontWeight: '800',
+      color: DSColors.ink,
+    },
+    labelAction: {
+      fontSize: DSText.sm,
+      fontWeight: '800',
+      color: DSColors.primary,
+    },
+    control: {
+      position: 'relative',
+      justifyContent: 'center',
+    },
+    input: {
+      height: 48,
+      paddingHorizontal: 14,
+      borderRadius: DSRadius.md,
+      borderWidth: 1,
+      borderColor: DSColors.lineStrong,
+      backgroundColor: DSColors.surface,
+      color: DSColors.ink,
+      fontSize: DSText.md,
+      fontWeight: '600',
+    },
+    inputWithAccessory: {
+      paddingRight: 76,
+    },
+    inputError: {
+      borderColor: DSColors.danger,
+    },
+    accessory: {
+      position: 'absolute',
+      right: 10,
+      paddingHorizontal: 4,
+      paddingVertical: 4,
+    },
+    accessoryLabel: {
+      fontSize: DSText.xs,
+      fontWeight: '800',
+      color: DSColors.inkSecondary,
+    },
+    help: {
+      fontSize: DSText.xs,
+      fontWeight: '600',
+      color: DSColors.inkSecondary,
+    },
+    error: {
+      fontSize: DSText.xs,
+      fontWeight: '700',
+      color: DSColors.danger,
+    },
+  });
+}

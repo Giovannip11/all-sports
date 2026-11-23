@@ -15,13 +15,14 @@ import MapView, { Marker } from 'react-native-maps';
 
 import { AsChip } from '@/components/design-system/as-chip';
 import { MarkerPin } from '@/components/discover/marker-pin';
-import { DSColors, DSRadius, DSSpacing, DSText } from '@/constants/design-system';
+import { DSRadius, DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
 import { SPORT_TYPES, type SportKey } from '@/constants/discover';
 import { BottomTabInset } from '@/constants/theme';
 import { useUserLocation } from '@/hooks/use-user-location';
 import { ApiError, type ApiMapMarker } from '@/lib/api';
 import * as api from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
+import { useDSColors } from '@/providers/theme-context';
 
 const SPORT_KEYS = Object.keys(SPORT_TYPES) as SportKey[];
 
@@ -50,6 +51,8 @@ function formatDate(iso: string) {
 export default function DiscoverScreen() {
   const { user, signOut, accessToken } = useAuth();
   const { region, status } = useUserLocation();
+  const DSColors = useDSColors();
+  const styles = useMemo(() => createStyles(DSColors), [DSColors]);
   const [activeSports, setActiveSports] = useState<SportKey[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -256,7 +259,8 @@ export default function DiscoverScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(DSColors: DSColorSet) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: DSColors.surface2,
@@ -444,4 +448,5 @@ const styles = StyleSheet.create({
     color: DSColors.inkSecondary,
     paddingVertical: 20,
   },
-});
+  });
+}

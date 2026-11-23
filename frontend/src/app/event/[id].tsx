@@ -220,16 +220,35 @@ export default function EventDetailScreen() {
         </View>
 
         {event.is_organizer ? (
-          event.status !== 'canceled' && (
+          <View style={styles.actions}>
             <AsButton
-              label={actionLoading ? 'Cancelando...' : 'Cancelar evento'}
+              label="Chat do evento"
               variant="secondary"
-              loading={actionLoading}
               onPress={() =>
-                withAction(() => api.updateEvent(accessToken!, event.id, { status: 'canceled' }))
+                router.push({
+                  pathname: '/event-chat',
+                  params: { eventId: event.id, title: event.title },
+                })
               }
             />
-          )
+            <AsButton
+              label="Sorteio de times"
+              variant="secondary"
+              onPress={() =>
+                router.push({ pathname: '/team-draw', params: { eventId: event.id } })
+              }
+            />
+            {event.status !== 'canceled' && (
+              <AsButton
+                label={actionLoading ? 'Cancelando...' : 'Cancelar evento'}
+                variant="secondary"
+                loading={actionLoading}
+                onPress={() =>
+                  withAction(() => api.updateEvent(accessToken!, event.id, { status: 'canceled' }))
+                }
+              />
+            )}
+          </View>
         ) : (
           <View style={styles.actions}>
             <AsButton
@@ -258,6 +277,27 @@ export default function EventDetailScreen() {
                 loading={actionLoading}
                 onPress={() => withAction(() => api.confirmPresence(accessToken!, event.id))}
               />
+            )}
+            {event.is_participant && (
+              <>
+                <AsButton
+                  label="Chat do evento"
+                  variant="secondary"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/event-chat',
+                      params: { eventId: event.id, title: event.title },
+                    })
+                  }
+                />
+                <AsButton
+                  label="Ver times"
+                  variant="secondary"
+                  onPress={() =>
+                    router.push({ pathname: '/team-draw', params: { eventId: event.id } })
+                  }
+                />
+              </>
             )}
           </View>
         )}

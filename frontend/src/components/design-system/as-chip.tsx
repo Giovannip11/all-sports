@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { DSColors, DSText } from '@/constants/design-system';
+import { DSText, type DSColorSet } from '@/constants/design-system';
+import { useDSColors } from '@/providers/theme-context';
 
 export type AsChipProps = {
   label: string;
@@ -11,6 +13,9 @@ export type AsChipProps = {
 };
 
 export function AsChip({ label, active, onPress, dotColor }: AsChipProps) {
+  const colors = useDSColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <Pressable
       onPress={onPress}
@@ -23,35 +28,37 @@ export function AsChip({ label, active, onPress, dotColor }: AsChipProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  chip: {
-    height: 34,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: DSColors.line,
-    backgroundColor: DSColors.surface,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  chipActive: {
-    backgroundColor: DSColors.primaryTint,
-    borderColor: DSColors.primary,
-    borderWidth: 1.5,
-  },
-  label: {
-    fontSize: DSText.sm,
-    fontWeight: '800',
-    color: DSColors.ink,
-  },
-  labelActive: {
-    color: DSColors.primary,
-  },
-});
+function createStyles(DSColors: DSColorSet) {
+  return StyleSheet.create({
+    chip: {
+      height: 34,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      borderWidth: 1,
+      borderColor: DSColors.line,
+      backgroundColor: DSColors.surface,
+    },
+    dot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    chipActive: {
+      backgroundColor: DSColors.primaryTint,
+      borderColor: DSColors.primary,
+      borderWidth: 1.5,
+    },
+    label: {
+      fontSize: DSText.sm,
+      fontWeight: '800',
+      color: DSColors.ink,
+    },
+    labelActive: {
+      color: DSColors.primary,
+    },
+  });
+}
