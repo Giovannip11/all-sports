@@ -9,6 +9,7 @@ export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API_URL;
 
 export type Role = 'practice' | 'organize';
 export type Gender = 'masculino' | 'feminino' | 'outro' | 'prefiro_nao_informar';
+export type Plan = 'gratuito' | 'casual' | 'intermediario' | 'arena';
 
 export type ApiUser = {
   id: string;
@@ -23,6 +24,7 @@ export type ApiUser = {
   cpf: string | null;
   gender: Gender | null;
   country: string | null;
+  plan: Plan;
 };
 
 export type ApiSession = {
@@ -109,6 +111,14 @@ export function updateProfile(
   });
 }
 
+export function updatePlan(accessToken: string, plan: Plan) {
+  return request<ApiUser>('/auth/me/plan', {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ plan }),
+  });
+}
+
 export function uploadAvatar(
   accessToken: string,
   file: { uri: string; name: string; type: string },
@@ -136,7 +146,7 @@ export function deleteAccount(accessToken: string) {
 // ---------------------------------------------------------------------------
 
 export type Visibility = 'public' | 'private';
-export type EventStatus = 'active' | 'cancelled';
+export type EventStatus = 'draft' | 'open' | 'full' | 'in_progress' | 'finished' | 'canceled';
 
 export type ApiEvent = {
   id: string;
@@ -161,7 +171,7 @@ export type ApiEvent = {
 export type ApiParticipant = {
   user_id: string;
   name: string;
-  status: 'confirmed' | 'cancelled';
+  status: 'confirmed' | 'waitlisted' | 'canceled';
   presence_confirmed: boolean;
   joined_at: string;
 };
@@ -267,6 +277,7 @@ export type ApiNotification = {
   id: string;
   event_id: string | null;
   type: string;
+  title: string | null;
   message: string;
   read: boolean;
   created_at: string;

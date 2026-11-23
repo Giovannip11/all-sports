@@ -4,29 +4,30 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 Visibility = Literal["public", "private"]
-EventStatus = Literal["active", "cancelled"]
+EventStatus = Literal["draft", "open", "full", "in_progress", "finished", "canceled"]
+RegistrationStatus = Literal["confirmed", "waitlisted", "canceled"]
 
 
 class EventCreate(BaseModel):
     sport: str = Field(min_length=1)
-    title: str = Field(min_length=2)
-    description: str | None = Field(default=None, max_length=1000)
+    title: str = Field(min_length=3, max_length=120)
+    description: str | None = Field(default=None, max_length=2000)
     location: str = Field(min_length=2)
     latitude: float
     longitude: float
     starts_at: datetime
-    max_participants: int = Field(gt=0, le=200)
+    max_participants: int = Field(ge=2, le=5000)
     visibility: Visibility = "public"
 
 
 class EventUpdate(BaseModel):
-    title: str | None = Field(default=None, min_length=2)
-    description: str | None = Field(default=None, max_length=1000)
+    title: str | None = Field(default=None, min_length=3, max_length=120)
+    description: str | None = Field(default=None, max_length=2000)
     location: str | None = Field(default=None, min_length=2)
     latitude: float | None = None
     longitude: float | None = None
     starts_at: datetime | None = None
-    max_participants: int | None = Field(default=None, gt=0, le=200)
+    max_participants: int | None = Field(default=None, ge=2, le=5000)
     visibility: Visibility | None = None
     status: EventStatus | None = None
 
@@ -34,7 +35,7 @@ class EventUpdate(BaseModel):
 class ParticipantOut(BaseModel):
     user_id: str
     name: str
-    status: Literal["confirmed", "cancelled"]
+    status: RegistrationStatus
     presence_confirmed: bool
     joined_at: datetime
 

@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AsButton } from '@/components/design-system/as-button';
+import { LocationPicker } from '@/components/location-picker';
 import { DSColors, DSSpacing, DSText } from '@/constants/design-system';
 import { SPORT_TYPES, type SportKey } from '@/constants/discover';
 import { ApiError, type ApiEventDetail } from '@/lib/api';
@@ -22,11 +23,17 @@ function formatDate(iso: string) {
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
   const [event, setEvent] = useState<ApiEventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
+  const [editingLocation, setEditingLocation] = useState(false);
+  const [pendingCoords, setPendingCoords] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [savingLocation, setSavingLocation] = useState(false);
 
   const load = useCallback(async () => {
     if (!accessToken || !id) {
@@ -50,6 +57,37 @@ export default function EventDetailScreen() {
       load();
     }, [load]),
   );
+
+  async function handleSaveLocation() {
+    if (!accessToken || !event || !pendingCoords) return;
+    setSavingLocation(true);
+    setError('');
+    try {
+      await api.updateEvent(accessToken, event.id, {
+        latitude: pendingCoords.latitude,
+        longitude: pendingCoords.longitude,
+      });
+      setEditingLocation(false);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Não foi possível atualizar o local');
+    } finally {
+      setSavingLocation(false);
+    }
+  }
+
+  async function handleJoin() {
+    if (!accessToken || !event) return;
+    setActionLoading(true);
+    setError('');
+    try {
+      await api.joinEvent(accessToken, event.id);
+      router.replace('/main/events');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Não foi possível confirmar a participação');
+      setActionLoading(false);
+    }
+  }
 
   async function withAction(fn: () => Promise<unknown>) {
     setActionLoading(true);
@@ -89,7 +127,7 @@ export default function EventDetailScreen() {
 
   const sportInfo = SPORT_TYPES[event.sport as SportKey];
   const full = event.participants_count >= event.max_participants;
-  const myParticipation = event.participants.find((p) => p.status === 'confirmed' && event.is_participant);
+  const myParticipation = event.participants.find((p) => p.user_id === user?.id);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -119,14 +157,52 @@ export default function EventDetailScreen() {
         </View>
         <Text style={styles.subtitle}>
           {sportInfo?.label ?? event.sport} · {event.visibility === 'private' ? 'Privado' : 'Público'}
-          {event.status === 'cancelled' ? ' · Cancelado' : ''}
+          {event.status === 'canceled' ? ' · Cancelado' : ''}
         </Text>
 
         {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
 
         <View style={styles.infoBlock}>
-          <Text style={styles.infoLabel}>Local</Text>
+          <View style={styles.infoLabelRow}>
+            <Text style={styles.infoLabel}>Local</Text>
+            {event.is_organizer && event.status !== 'canceled' && !editingLocation && (
+              <Pressable
+                onPress={() => {
+                  setPendingCoords({ latitude: event.latitude, longitude: event.longitude });
+                  setEditingLocation(true);
+                }}
+                hitSlop={8}>
+                <Text style={styles.editLocationLink}>Editar local</Text>
+              </Pressable>
+            )}
+          </View>
           <Text style={styles.infoValue}>{event.location}</Text>
+
+          {editingLocation && pendingCoords && (
+            <View style={styles.editLocationBlock}>
+              <LocationPicker
+                latitude={pendingCoords.latitude}
+                longitude={pendingCoords.longitude}
+                onChange={(latitude, longitude) => setPendingCoords({ latitude, longitude })}
+              />
+              <View style={styles.editLocationActions}>
+                <AsButton
+                  label="Cancelar"
+                  variant="secondary"
+                  style={styles.editLocationButton}
+                  disabled={savingLocation}
+                  onPress={() => setEditingLocation(false)}
+                />
+                <AsButton
+                  label={savingLocation ? 'Salvando...' : 'Salvar local'}
+                  variant="primary"
+                  style={styles.editLocationButton}
+                  loading={savingLocation}
+                  onPress={handleSaveLocation}
+                />
+              </View>
+            </View>
+          )}
         </View>
         <View style={styles.infoBlock}>
           <Text style={styles.infoLabel}>Quando</Text>
@@ -144,13 +220,13 @@ export default function EventDetailScreen() {
         </View>
 
         {event.is_organizer ? (
-          event.status !== 'cancelled' && (
+          event.status !== 'canceled' && (
             <AsButton
               label={actionLoading ? 'Cancelando...' : 'Cancelar evento'}
               variant="secondary"
               loading={actionLoading}
               onPress={() =>
-                withAction(() => api.updateEvent(accessToken!, event.id, { status: 'cancelled' }))
+                withAction(() => api.updateEvent(accessToken!, event.id, { status: 'canceled' }))
               }
             />
           )
@@ -167,14 +243,12 @@ export default function EventDetailScreen() {
                       : 'Participar'
               }
               variant={event.is_participant ? 'secondary' : 'primary'}
-              disabled={(!event.is_participant && full) || event.status === 'cancelled'}
+              disabled={(!event.is_participant && full) || event.status === 'canceled'}
               loading={actionLoading}
               onPress={() =>
-                withAction(() =>
-                  event.is_participant
-                    ? api.leaveEvent(accessToken!, event.id)
-                    : api.joinEvent(accessToken!, event.id),
-                )
+                event.is_participant
+                  ? withAction(() => api.leaveEvent(accessToken!, event.id))
+                  : handleJoin()
               }
             />
             {event.is_participant && !myParticipation?.presence_confirmed && (
@@ -229,8 +303,17 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: DSText.sm, fontWeight: '700', color: DSColors.inkSecondary },
   description: { fontSize: DSText.md, lineHeight: 21, color: DSColors.ink },
   infoBlock: { gap: 2 },
+  infoLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   infoLabel: { fontSize: DSText.xs, fontWeight: '800', color: DSColors.inkSecondary },
   infoValue: { fontSize: DSText.md, fontWeight: '600', color: DSColors.ink },
+  editLocationLink: { fontSize: DSText.xs, fontWeight: '800', color: DSColors.primary },
+  editLocationBlock: { marginTop: DSSpacing[2], gap: DSSpacing[2] },
+  editLocationActions: { flexDirection: 'row', gap: DSSpacing[2] },
+  editLocationButton: { flex: 1 },
   actions: { gap: DSSpacing[2] },
   participantsBlock: { gap: 8, marginTop: DSSpacing[2] },
   emptyParticipants: { fontSize: DSText.sm, fontWeight: '600', color: DSColors.inkSecondary },

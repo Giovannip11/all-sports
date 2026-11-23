@@ -33,6 +33,13 @@ const ROLE_LABEL: Record<string, string> = {
   organize: 'Organizador',
 };
 
+const PLAN_LABEL: Record<string, string> = {
+  gratuito: 'Gratuito',
+  casual: 'Casual',
+  intermediario: 'Intermediário',
+  arena: 'Arena',
+};
+
 export default function ProfileScreen() {
   const { user, updateProfile, uploadAvatar, deleteAccount } = useAuth();
 
@@ -159,6 +166,22 @@ export default function ProfileScreen() {
               <View style={styles.roleBadge}>
                 <Text style={styles.roleBadgeText}>{ROLE_LABEL[user.role] ?? user.role}</Text>
               </View>
+            )}
+
+            {user?.role === 'organize' && (
+              <Pressable
+                onPress={() => router.push('/plans')}
+                style={styles.planRow}
+                accessibilityRole="button"
+                accessibilityLabel="Mudar de plano">
+                <View>
+                  <Text style={styles.planRowLabel}>Plano atual</Text>
+                  <Text style={styles.planRowValue}>
+                    {PLAN_LABEL[user.plan] ?? user.plan}
+                  </Text>
+                </View>
+                <Text style={styles.planRowAction}>Mudar plano ›</Text>
+              </Pressable>
             )}
 
             {formError ? (
@@ -339,6 +362,29 @@ const styles = StyleSheet.create({
     fontSize: DSText.xs,
     fontWeight: '800',
     color: DSColors.accentPressed,
+  },
+  planRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: DSSpacing[3],
+    borderRadius: DSRadius.lg,
+    backgroundColor: DSColors.surface2,
+  },
+  planRowLabel: {
+    fontSize: DSText.xs,
+    fontWeight: '700',
+    color: DSColors.inkSecondary,
+  },
+  planRowValue: {
+    fontSize: DSText.md,
+    fontWeight: '800',
+    color: DSColors.ink,
+  },
+  planRowAction: {
+    fontSize: DSText.sm,
+    fontWeight: '800',
+    color: DSColors.primary,
   },
   stack: {
     gap: DSSpacing[3] + 2,

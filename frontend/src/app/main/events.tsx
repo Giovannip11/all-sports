@@ -176,7 +176,7 @@ export default function EventsScreen() {
                 <View style={styles.cardFooter}>
                   <Text style={styles.cardMeta}>
                     {event.participants_count}/{event.max_participants} vagas
-                    {event.status === 'cancelled' ? ' · Cancelado' : ''}
+                    {event.status === 'canceled' ? ' · Cancelado' : ''}
                   </Text>
                   {event.is_organizer ? (
                     <View style={styles.organizerBadge}>
@@ -185,7 +185,7 @@ export default function EventsScreen() {
                   ) : (
                     <Pressable
                       onPress={() => handleToggleJoin(event)}
-                      disabled={actionId === event.id || (!event.is_participant && full) || event.status === 'cancelled'}
+                      disabled={actionId === event.id || (!event.is_participant && full) || event.status === 'canceled'}
                       style={[
                         styles.joinButton,
                         event.is_participant && styles.leaveButton,

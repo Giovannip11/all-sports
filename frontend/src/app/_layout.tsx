@@ -20,6 +20,7 @@ export default function RootLayout() {
           <Stack.Screen name="create-event" />
           <Stack.Screen name="event/[id]" />
           <Stack.Screen name="notifications" />
+          <Stack.Screen name="plans" />
         </Stack>
       </AuthProvider>
     </ThemeProvider>

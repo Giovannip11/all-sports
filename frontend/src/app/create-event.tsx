@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AsButton } from '@/components/design-system/as-button';
 import { AsChip } from '@/components/design-system/as-chip';
 import { AsField } from '@/components/design-system/as-field';
+import { LocationPicker } from '@/components/location-picker';
 import { DSColors, DSSpacing, DSText } from '@/constants/design-system';
 import { SPORT_TYPES, type SportKey } from '@/constants/discover';
 import { useUserLocation } from '@/hooks/use-user-location';
@@ -56,6 +57,15 @@ export default function CreateEventScreen() {
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState('');
 
+  // Starts out following the user's real location, then becomes independent
+  // once they drag the pin — the picker is the source of truth after that.
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [pinMoved, setPinMoved] = useState(false);
+
+  if (region && !coords && !pinMoved) {
+    setCoords({ latitude: region.latitude, longitude: region.longitude });
+  }
+
   const [titleError, setTitleError] = useState('');
   const [locationError, setLocationError] = useState('');
   const [dateTimeError, setDateTimeError] = useState('');
@@ -79,7 +89,7 @@ export default function CreateEventScreen() {
       return;
 
     if (!accessToken) return;
-    if (!region) {
+    if (!coords) {
       setFormError('Precisamos da sua localização para registrar onde o evento acontece.');
       return;
     }
@@ -91,8 +101,8 @@ export default function CreateEventScreen() {
         title: title.trim(),
         description: description.trim() || undefined,
         location: location.trim(),
-        latitude: region.latitude,
-        longitude: region.longitude,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
         starts_at: startsAt,
         max_participants: maxNumber,
         visibility,
@@ -174,6 +184,17 @@ export default function CreateEventScreen() {
               }}
               error={locationError}
             />
+
+            {coords && (
+              <LocationPicker
+                latitude={coords.latitude}
+                longitude={coords.longitude}
+                onChange={(latitude, longitude) => {
+                  setPinMoved(true);
+                  setCoords({ latitude, longitude });
+                }}
+              />
+            )}
 
             <View style={styles.row}>
               <View style={styles.rowField}>

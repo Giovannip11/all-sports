@@ -9,6 +9,7 @@ from app.core.supabase import get_supabase_admin_client, get_supabase_client
 from app.schemas.auth import (
     LoginRequest,
     LoginResponse,
+    PlanUpdateRequest,
     ProfileUpdateRequest,
     Role,
     SessionOut,
@@ -38,6 +39,7 @@ def _user_out(user, role_fallback: Role = "practice") -> UserOut:
         cpf=metadata.get("cpf"),
         gender=metadata.get("gender"),
         country=metadata.get("country"),
+        plan=metadata.get("plan", "gratuito"),
     )
 
 
@@ -125,6 +127,17 @@ def update_me(payload: ProfileUpdateRequest, token: str = Depends(bearer_token))
 
     patch = payload.model_dump(exclude_none=True)
     metadata.update(patch)
+
+    admin = get_supabase_admin_client()
+    updated = admin.auth.admin.update_user_by_id(user.id, {"user_metadata": metadata})
+    return _user_out(updated.user, role_fallback=metadata.get("role", "practice"))
+
+
+@router.patch("/me/plan", response_model=UserOut)
+def update_plan(payload: PlanUpdateRequest, token: str = Depends(bearer_token)) -> UserOut:
+    user = authenticated_user(token)
+    metadata = dict(user.user_metadata or {})
+    metadata["plan"] = payload.plan
 
     admin = get_supabase_admin_client()
     updated = admin.auth.admin.update_user_by_id(user.id, {"user_metadata": metadata})

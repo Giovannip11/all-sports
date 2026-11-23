@@ -7,6 +7,7 @@ from app.core.cpf import is_valid_cpf, normalize_cpf
 
 Role = Literal["practice", "organize"]
 Gender = Literal["masculino", "feminino", "outro", "prefiro_nao_informar"]
+Plan = Literal["gratuito", "casual", "intermediario", "arena"]
 
 MIN_SIGNUP_AGE = 16
 
@@ -67,12 +68,17 @@ class UserOut(BaseModel):
     cpf: str | None = None
     gender: Gender | None = None
     country: str | None = None
+    plan: Plan = "gratuito"
 
 
 class ProfileUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=2)
     phone: str | None = Field(default=None, min_length=8)
     bio: str | None = Field(default=None, max_length=280)
+
+
+class PlanUpdateRequest(BaseModel):
+    plan: Plan
 
 
 class SessionOut(BaseModel):

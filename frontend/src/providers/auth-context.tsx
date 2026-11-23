@@ -27,6 +27,7 @@ type AuthContextValue = {
   signOut: () => void;
   updateProfile: (patch: ProfilePatch) => Promise<void>;
   uploadAvatar: (file: { uri: string; name: string; type: string }) => Promise<void>;
+  updatePlan: (plan: api.Plan) => Promise<void>;
   deleteAccount: () => Promise<void>;
 };
 
@@ -69,6 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(updated);
   }
 
+  async function updatePlan(plan: api.Plan) {
+    if (!accessToken) throw new Error('Não autenticado');
+    const updated = await api.updatePlan(accessToken, plan);
+    setUser(updated);
+  }
+
   async function deleteAccount() {
     if (!accessToken) throw new Error('Não autenticado');
     await api.deleteAccount(accessToken);
@@ -85,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         updateProfile,
         uploadAvatar,
+        updatePlan,
         deleteAccount,
       }}>
       {children}
