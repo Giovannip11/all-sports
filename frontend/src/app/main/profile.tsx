@@ -21,6 +21,7 @@ import { BottomTabInset } from '@/constants/theme';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
 import { useDSColors, useTheme, type ThemeMode } from '@/providers/theme-context';
+import { formatPhone } from '@/utils/masks';
 import { isValidPhone } from '@/utils/validation';
 
 const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
@@ -54,7 +55,7 @@ export default function ProfileScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [name, setName] = useState(user?.name ?? '');
-  const [phone, setPhone] = useState(user?.phone ?? '');
+  const [phone, setPhone] = useState(formatPhone(user?.phone ?? ''));
   const [bio, setBio] = useState(user?.bio ?? '');
 
   const [nameError, setNameError] = useState('');
@@ -225,7 +226,7 @@ export default function ProfileScreen() {
                 keyboardType="phone-pad"
                 value={phone}
                 onChangeText={(value) => {
-                  setPhone(value);
+                  setPhone(formatPhone(value));
                   if (phoneError) setPhoneError('');
                   setSavedMessage('');
                 }}

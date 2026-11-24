@@ -18,8 +18,8 @@ import { DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
 import { ApiError, type Gender, type Role } from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
 import { useDSColors } from '@/providers/theme-context';
+import { formatCPF, formatDate, formatPhone } from '@/utils/masks';
 import {
-  formatCPF,
   isOldEnough,
   isValidCPF,
   isValidEmail,
@@ -189,7 +189,10 @@ export default function SignupScreen() {
             <View style={styles.segment}>
               <Pressable
                 style={[styles.segmentBtn, role === 'practice' && styles.segmentBtnActive]}
-                onPress={() => setRole('practice')}>
+                onPress={() => setRole('practice')}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: role === 'practice' }}
+                accessibilityLabel="Quero praticar">
                 <Text
                   style={[styles.segmentLabel, role === 'practice' && styles.segmentLabelActive]}>
                   Praticar
@@ -197,7 +200,10 @@ export default function SignupScreen() {
               </Pressable>
               <Pressable
                 style={[styles.segmentBtn, role === 'organize' && styles.segmentBtnActive]}
-                onPress={() => setRole('organize')}>
+                onPress={() => setRole('organize')}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: role === 'organize' }}
+                accessibilityLabel="Quero organizar">
                 <Text
                   style={[
                     styles.segmentLabel,
@@ -249,7 +255,7 @@ export default function SignupScreen() {
               keyboardType="phone-pad"
               value={phone}
               onChangeText={(value) => {
-                setPhone(value);
+                setPhone(formatPhone(value));
                 if (phoneError) setPhoneError('');
               }}
               error={phoneError}
@@ -272,7 +278,7 @@ export default function SignupScreen() {
               keyboardType="numbers-and-punctuation"
               value={birthDate}
               onChangeText={(value) => {
-                setBirthDate(value);
+                setBirthDate(formatDate(value));
                 if (birthDateError) setBirthDateError('');
               }}
               error={birthDateError}

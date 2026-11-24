@@ -1,12 +1,13 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { DSColors, DSSpacing, DSText } from '@/constants/design-system';
+import { DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
 import { ApiError, type ApiNotification } from '@/lib/api';
 import * as api from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
+import { useDSColors } from '@/providers/theme-context';
 
 function formatRelative(iso: string) {
   const date = new Date(iso);
@@ -22,6 +23,8 @@ function formatRelative(iso: string) {
 
 export default function NotificationsScreen() {
   const { accessToken } = useAuth();
+  const colors = useDSColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [notifications, setNotifications] = useState<ApiNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -99,7 +102,7 @@ export default function NotificationsScreen() {
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator color={DSColors.primary} />
+          <ActivityIndicator color={colors.primary} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.list}>
@@ -124,7 +127,8 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(DSColors: DSColorSet) {
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: DSColors.surface },
   header: {
     flexDirection: 'row',
@@ -196,4 +200,5 @@ const styles = StyleSheet.create({
     color: DSColors.danger,
     textAlign: 'center',
   },
-});
+  });
+}

@@ -1,5 +1,5 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -13,10 +13,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { DSColors, DSRadius, DSSpacing, DSText } from '@/constants/design-system';
+import { DSRadius, DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
 import { ApiError, type ApiMessage } from '@/lib/api';
 import * as api from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
+import { useDSColors } from '@/providers/theme-context';
 
 const POLL_INTERVAL_MS = 4000;
 
@@ -27,6 +28,8 @@ function formatTime(iso: string) {
 export default function EventChatScreen() {
   const { eventId, title } = useLocalSearchParams<{ eventId: string; title?: string }>();
   const { accessToken } = useAuth();
+  const colors = useDSColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [messages, setMessages] = useState<ApiMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +107,7 @@ export default function EventChatScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {loading ? (
           <View style={styles.centered}>
-            <ActivityIndicator color={DSColors.primary} />
+            <ActivityIndicator color={colors.primary} />
           </View>
         ) : (
           <ScrollView
@@ -144,7 +147,7 @@ export default function EventChatScreen() {
           <TextInput
             style={styles.input}
             placeholder="Escreva uma mensagem..."
-            placeholderTextColor={DSColors.inkTertiary}
+            placeholderTextColor={colors.inkTertiary}
             value={draft}
             onChangeText={setDraft}
             multiline
@@ -164,7 +167,8 @@ export default function EventChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(DSColors: DSColorSet) {
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: DSColors.surface2 },
   flex: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -275,4 +279,5 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: { opacity: 0.4 },
   sendButtonText: { fontSize: 16, color: DSColors.inverse, fontWeight: '800' },
-});
+  });
+}

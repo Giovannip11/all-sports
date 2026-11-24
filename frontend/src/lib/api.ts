@@ -94,6 +94,13 @@ export function login(input: { email: string; password: string }) {
   });
 }
 
+export function forgotPassword(email: string) {
+  return request<void>('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
 export function me(accessToken: string) {
   return request<ApiUser>('/auth/me', {
     headers: { Authorization: `Bearer ${accessToken}` },

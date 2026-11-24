@@ -57,11 +57,3 @@ export function isValidCPF(value: string): boolean {
   const secondCheck = cpfCheckDigit([...digits.slice(0, 9), firstCheck], 11);
   return digits[9] === firstCheck && digits[10] === secondCheck;
 }
-
-export function formatCPF(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 11);
-  return digits
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-}

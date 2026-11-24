@@ -55,6 +55,10 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
 class UserOut(BaseModel):
     id: str
     email: str

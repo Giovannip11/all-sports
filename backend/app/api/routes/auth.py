@@ -4,9 +4,11 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from supabase_auth.errors import AuthApiError
 
+from app.core.rate_limit import rate_limit_login, rate_limit_password_reset, rate_limit_signup
 from app.core.security import authenticated_user, bearer_token
 from app.core.supabase import get_supabase_admin_client, get_supabase_client
 from app.schemas.auth import (
+    ForgotPasswordRequest,
     LoginRequest,
     LoginResponse,
     PlanUpdateRequest,
@@ -22,6 +24,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 AVATAR_BUCKET = "avatars"
 ALLOWED_AVATAR_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
+MAX_AVATAR_BYTES = 5 * 1024 * 1024
 
 
 def _user_out(user, role_fallback: Role = "practice") -> UserOut:
@@ -51,7 +54,12 @@ def _session_out(session) -> SessionOut:
     )
 
 
-@router.post("/signup", response_model=SignupResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/signup",
+    response_model=SignupResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit_signup)],
+)
 def signup(payload: SignupRequest) -> SignupResponse:
     client = get_supabase_client()
     try:
@@ -94,7 +102,7 @@ def signup(payload: SignupRequest) -> SignupResponse:
     )
 
 
-@router.post("/login", response_model=LoginResponse)
+@router.post("/login", response_model=LoginResponse, dependencies=[Depends(rate_limit_login)])
 def login(payload: LoginRequest) -> LoginResponse:
     client = get_supabase_client()
     try:
@@ -112,6 +120,22 @@ def login(payload: LoginRequest) -> LoginResponse:
         raise HTTPException(status_code=401, detail="E-mail ou senha incorretos")
 
     return LoginResponse(user=_user_out(result.user), session=_session_out(result.session))
+
+
+@router.post(
+    "/forgot-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(rate_limit_password_reset)],
+)
+def forgot_password(payload: ForgotPasswordRequest) -> None:
+    """Sends a password-reset e-mail. Always responds 204 regardless of
+    whether the address has an account, so this can't be used to find out
+    which e-mails are registered."""
+    client = get_supabase_client()
+    try:
+        client.auth.reset_password_for_email(payload.email)
+    except AuthApiError:
+        pass
 
 
 @router.get("/me", response_model=UserOut)
@@ -157,6 +181,8 @@ async def upload_avatar(
 
     user = authenticated_user(token)
     contents = await file.read()
+    if len(contents) > MAX_AVATAR_BYTES:
+        raise HTTPException(status_code=400, detail="Imagem muito grande (máximo 5MB)")
 
     admin = get_supabase_admin_client()
     path = f"{user.id}/{uuid.uuid4().hex}.{extension}"

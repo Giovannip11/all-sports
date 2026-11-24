@@ -125,7 +125,10 @@ export default function TeamDrawScreen() {
                 <Pressable
                   key={option.value}
                   style={[styles.modeOption, mode === option.value && styles.modeOptionActive]}
-                  onPress={() => setMode(option.value)}>
+                  onPress={() => setMode(option.value)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: mode === option.value }}
+                  accessibilityLabel={option.label}>
                   <View style={styles.modeOptionHeader}>
                     <View
                       style={[styles.radio, mode === option.value && styles.radioActive]}

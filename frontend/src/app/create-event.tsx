@@ -20,6 +20,7 @@ import { SPORT_TYPES, type SportKey } from '@/constants/discover';
 import { useUserLocation } from '@/hooks/use-user-location';
 import { ApiError, createEvent, type Visibility } from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
+import { formatDate, formatTime } from '@/utils/masks';
 
 const SPORT_KEYS = Object.keys(SPORT_TYPES) as SportKey[];
 
@@ -203,7 +204,7 @@ export default function CreateEventScreen() {
                   placeholder="DD/MM/AAAA"
                   value={date}
                   onChangeText={(v) => {
-                    setDate(v);
+                    setDate(formatDate(v));
                     if (dateTimeError) setDateTimeError('');
                   }}
                   keyboardType="numbers-and-punctuation"
@@ -215,7 +216,7 @@ export default function CreateEventScreen() {
                   placeholder="HH:MM"
                   value={time}
                   onChangeText={(v) => {
-                    setTime(v);
+                    setTime(formatTime(v));
                     if (dateTimeError) setDateTimeError('');
                   }}
                   keyboardType="numbers-and-punctuation"
@@ -241,7 +242,10 @@ export default function CreateEventScreen() {
               <View style={styles.segment}>
                 <Pressable
                   style={[styles.segmentBtn, visibility === 'public' && styles.segmentBtnActive]}
-                  onPress={() => setVisibility('public')}>
+                  onPress={() => setVisibility('public')}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: visibility === 'public' }}
+                  accessibilityLabel="Visibilidade pública">
                   <Text
                     style={[
                       styles.segmentLabel,
@@ -252,7 +256,10 @@ export default function CreateEventScreen() {
                 </Pressable>
                 <Pressable
                   style={[styles.segmentBtn, visibility === 'private' && styles.segmentBtnActive]}
-                  onPress={() => setVisibility('private')}>
+                  onPress={() => setVisibility('private')}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: visibility === 'private' }}
+                  accessibilityLabel="Visibilidade privada">
                   <Text
                     style={[
                       styles.segmentLabel,

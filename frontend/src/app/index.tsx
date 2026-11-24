@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AsButton } from '@/components/design-system/as-button';
 import { AsField } from '@/components/design-system/as-field';
 import { DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
-import { ApiError } from '@/lib/api';
+import { ApiError, forgotPassword } from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
 import { useDSColors } from '@/providers/theme-context';
 import { isValidEmail, isValidPassword } from '@/utils/validation';
@@ -22,6 +22,30 @@ export default function LoginScreen() {
   const [passwordError, setPasswordError] = useState('');
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [resetMode, setResetMode] = useState(false);
+  const [resetSending, setResetSending] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
+
+  async function handleForgotPassword() {
+    if (!isValidEmail(email)) {
+      setEmailError('Digite um e-mail válido');
+      return;
+    }
+    setResetSending(true);
+    setResetMessage('');
+    try {
+      await forgotPassword(email.trim());
+    } catch {
+      // Intentionally ignored — the backend already responds the same way
+      // whether the e-mail exists or not, so any error here is transient.
+    } finally {
+      setResetSending(false);
+      setResetMessage(
+        `Se ${email.trim()} tiver uma conta, enviamos um link de recuperação pro e-mail.`,
+      );
+    }
+  }
 
   async function handleSubmit() {
     const nextEmailError = isValidEmail(email) ? '' : 'Digite um e-mail válido';
@@ -73,49 +97,104 @@ export default function LoginScreen() {
               </View>
             ) : null}
 
-            <View style={styles.stack}>
-              <AsField
-                label="E-mail"
-                placeholder="voce@email.com"
-                autoComplete="email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={(value) => {
-                  setEmail(value);
-                  if (emailError) setEmailError('');
-                }}
-                error={emailError}
-              />
-              <AsField
-                label="Senha"
-                placeholder="Sua senha"
-                autoComplete="current-password"
-                isPassword
-                value={password}
-                onChangeText={(value) => {
-                  setPassword(value);
-                  if (passwordError) setPasswordError('');
-                }}
-                error={passwordError}
-                labelAction={{ label: 'Esqueci', onPress: () => {} }}
-              />
-            </View>
+            {resetMessage ? (
+              <View style={styles.resetMessage}>
+                <Text style={styles.resetMessageText}>{resetMessage}</Text>
+              </View>
+            ) : null}
 
-            <AsButton
-              label={loading ? 'Entrando...' : 'Entrar'}
-              variant="primary"
-              block
-              loading={loading}
-              onPress={handleSubmit}
-            />
+            {resetMode ? (
+              <>
+                <View style={styles.stack}>
+                  <AsField
+                    label="E-mail"
+                    placeholder="voce@email.com"
+                    autoComplete="email"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={email}
+                    onChangeText={(value) => {
+                      setEmail(value);
+                      if (emailError) setEmailError('');
+                    }}
+                    error={emailError}
+                  />
+                </View>
 
-            <Text style={styles.footer}>
-              Ainda não tem conta?{' '}
-              <Link href="/signup" style={styles.footerLink}>
-                Criar conta
-              </Link>
-            </Text>
+                <AsButton
+                  label={resetSending ? 'Enviando...' : 'Enviar link de recuperação'}
+                  variant="primary"
+                  block
+                  loading={resetSending}
+                  onPress={handleForgotPassword}
+                />
+
+                <Text style={styles.footer}>
+                  <Text
+                    style={styles.footerLink}
+                    onPress={() => {
+                      setResetMode(false);
+                      setResetMessage('');
+                    }}
+                    accessibilityRole="button">
+                    Voltar para o login
+                  </Text>
+                </Text>
+              </>
+            ) : (
+              <>
+                <View style={styles.stack}>
+                  <AsField
+                    label="E-mail"
+                    placeholder="voce@email.com"
+                    autoComplete="email"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={email}
+                    onChangeText={(value) => {
+                      setEmail(value);
+                      if (emailError) setEmailError('');
+                    }}
+                    error={emailError}
+                  />
+                  <AsField
+                    label="Senha"
+                    placeholder="Sua senha"
+                    autoComplete="current-password"
+                    isPassword
+                    value={password}
+                    onChangeText={(value) => {
+                      setPassword(value);
+                      if (passwordError) setPasswordError('');
+                    }}
+                    error={passwordError}
+                    labelAction={{
+                      label: 'Esqueci',
+                      onPress: () => {
+                        setResetMode(true);
+                        setResetMessage('');
+                        setFormError('');
+                      },
+                    }}
+                  />
+                </View>
+
+                <AsButton
+                  label={loading ? 'Entrando...' : 'Entrar'}
+                  variant="primary"
+                  block
+                  loading={loading}
+                  onPress={handleSubmit}
+                />
+
+                <Text style={styles.footer}>
+                  Ainda não tem conta?{' '}
+                  <Link href="/signup" style={styles.footerLink}>
+                    Criar conta
+                  </Link>
+                </Text>
+              </>
+            )}
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -185,6 +264,17 @@ function createStyles(DSColors: DSColorSet) {
     padding: 12,
     borderRadius: 8,
     backgroundColor: DSColors.dangerTint,
+  },
+  resetMessage: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: DSColors.primaryTint,
+  },
+  resetMessageText: {
+    fontSize: DSText.sm,
+    fontWeight: '700',
+    color: DSColors.primary,
+    textAlign: 'center',
   },
   formErrorText: {
     fontSize: DSText.sm,

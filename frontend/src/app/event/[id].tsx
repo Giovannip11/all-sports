@@ -1,15 +1,16 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AsButton } from '@/components/design-system/as-button';
 import { LocationPicker } from '@/components/location-picker';
-import { DSColors, DSSpacing, DSText } from '@/constants/design-system';
+import { DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
 import { SPORT_TYPES, type SportKey } from '@/constants/discover';
 import { ApiError, type ApiEventDetail } from '@/lib/api';
 import * as api from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
+import { useDSColors } from '@/providers/theme-context';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString('pt-BR', {
@@ -24,6 +25,8 @@ function formatDate(iso: string) {
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { accessToken, user } = useAuth();
+  const colors = useDSColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [event, setEvent] = useState<ApiEventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -105,7 +108,7 @@ export default function EventDetailScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={DSColors.primary} />
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
@@ -114,7 +117,12 @@ export default function EventDetailScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={8}>
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.backButton}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Voltar">
             <Text style={styles.backLabel}>‹</Text>
           </Pressable>
         </View>
@@ -151,7 +159,7 @@ export default function EventDetailScreen() {
 
         <View style={styles.titleRow}>
           <View
-            style={[styles.sportDot, { backgroundColor: sportInfo?.color ?? DSColors.inkTertiary }]}
+            style={[styles.sportDot, { backgroundColor: sportInfo?.color ?? colors.inkTertiary }]}
           />
           <Text style={styles.title}>{event.title}</Text>
         </View>
@@ -171,7 +179,9 @@ export default function EventDetailScreen() {
                   setPendingCoords({ latitude: event.latitude, longitude: event.longitude });
                   setEditingLocation(true);
                 }}
-                hitSlop={8}>
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Editar local do evento">
                 <Text style={styles.editLocationLink}>Editar local</Text>
               </Pressable>
             )}
@@ -319,7 +329,8 @@ export default function EventDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(DSColors: DSColorSet) {
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: DSColors.surface },
   header: {
     flexDirection: 'row',
@@ -374,4 +385,5 @@ const styles = StyleSheet.create({
     color: DSColors.danger,
     textAlign: 'center',
   },
-});
+  });
+}
