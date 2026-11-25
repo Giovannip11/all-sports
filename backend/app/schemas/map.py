@@ -2,11 +2,12 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.schemas.events import EventStatus, Visibility
+from app.schemas.events import EventKind, EventStatus, Visibility
 
 
 class MapMarkerOut(BaseModel):
     id: str
+    kind: EventKind = "pickup"
     sport: str
     title: str
     location: str

@@ -1,30 +1,25 @@
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Linking, StyleSheet, Text, TextInput, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 
-import { AsChip } from '@/components/design-system/as-chip';
+import { AsButton } from '@/components/design-system/as-button';
+import { AsIcon } from '@/components/design-system/as-icon';
+import { DiscoverOverlay } from '@/components/discover/discover-overlay';
 import { MarkerPin } from '@/components/discover/marker-pin';
-import { DSRadius, DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
+import { DSSpacing, DSType, type DSColorSet } from '@/constants/design-system';
 import { SPORT_TYPES, type SportKey } from '@/constants/discover';
-import { BottomTabInset } from '@/constants/theme';
 import { useUserLocation } from '@/hooks/use-user-location';
 import { ApiError, type ApiMapMarker } from '@/lib/api';
 import * as api from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
 import { useDSColors } from '@/providers/theme-context';
-
-const SPORT_KEYS = Object.keys(SPORT_TYPES) as SportKey[];
+import {
+  DEFAULT_FILTERS,
+  applyDiscovery,
+  priorityMap,
+  type DiscoveryFilters,
+} from '@/utils/discovery';
 
 function normalize(text: string) {
   return text
@@ -33,23 +28,9 @@ function normalize(text: string) {
     .toLowerCase();
 }
 
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '?';
-  return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase();
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 export default function DiscoverScreen() {
-  const { user, signOut, accessToken } = useAuth();
+  const { user, accessToken, mySports } = useAuth();
+  const [filters, setFilters] = useState<DiscoveryFilters>(DEFAULT_FILTERS);
   const { region, status } = useUserLocation();
   const DSColors = useDSColors();
   const styles = useMemo(() => createStyles(DSColors), [DSColors]);
@@ -57,16 +38,26 @@ export default function DiscoverScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [allMarkers, setAllMarkers] = useState<ApiMapMarker[]>([]);
+  const [loadingMarkers, setLoadingMarkers] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const mapRef = useRef<MapView>(null);
+  const [sheetHeight, setSheetHeight] = useState(0);
 
   const loadMarkers = useCallback(async () => {
-    if (!accessToken) return;
+    if (!accessToken) {
+      setLoadingMarkers(false);
+      return;
+    }
+    setLoadingMarkers(true);
     try {
       setAllMarkers(await api.listMapMarkers(accessToken));
+      setLoadError('');
     } catch (err) {
       // Keep whatever markers were already loaded — the map still works,
       // just without the latest refresh.
-      console.warn(err instanceof ApiError ? err.message : 'Erro ao carregar o mapa');
+      setLoadError(err instanceof ApiError ? err.message : 'Não foi possível carregar os eventos');
+    } finally {
+      setLoadingMarkers(false);
     }
   }, [accessToken]);
 
@@ -76,11 +67,6 @@ export default function DiscoverScreen() {
     }, [loadMarkers]),
   );
 
-  function handleSignOut() {
-    signOut();
-    router.replace('/');
-  }
-
   function toggleSport(sport: SportKey) {
     setActiveSports((current) =>
       current.includes(sport) ? current.filter((s) => s !== sport) : [...current, sport],
@@ -89,7 +75,7 @@ export default function DiscoverScreen() {
 
   const markers = useMemo(() => {
     const term = normalize(query.trim());
-    return allMarkers.filter((marker) => {
+    const matching = allMarkers.filter((marker) => {
       if (activeSports.length > 0 && !activeSports.includes(marker.sport as SportKey)) {
         return false;
       }
@@ -98,7 +84,9 @@ export default function DiscoverScreen() {
       const haystack = normalize(`${marker.title} ${marker.location} ${sportLabel}`);
       return haystack.includes(term);
     });
-  }, [activeSports, allMarkers, query]);
+    // Data/horário/distância + esportes preferidos primeiro (DISC-03/DISC-04).
+    return applyDiscovery(matching, filters, region, priorityMap(mySports));
+  }, [activeSports, allMarkers, query, filters, region, mySports]);
 
   function focusMarker(id: string) {
     setSelectedId(id);
@@ -122,6 +110,8 @@ export default function DiscoverScreen() {
           ref={mapRef}
           style={StyleSheet.absoluteFill}
           initialRegion={region}
+          // Centro e "minha localização" ficam na área visível, acima da sheet.
+          mapPadding={{ top: 0, right: 0, left: 0, bottom: sheetHeight }}
           showsUserLocation
           showsMyLocationButton
           onPress={() => setSelectedId(null)}>
@@ -145,308 +135,119 @@ export default function DiscoverScreen() {
           })}
         </MapView>
       ) : (
-        <View style={styles.mapFallback}>
-          {status === 'loading' && <ActivityIndicator color={DSColors.primary} />}
+        <View style={[styles.mapFallback, { bottom: sheetHeight }]}>
+          {status === 'loading' && (
+            <>
+              <ActivityIndicator color={DSColors.primary} />
+              <Text style={styles.fallbackBody}>Procurando sua localização...</Text>
+            </>
+          )}
           {status === 'denied' && (
             <>
+              <View style={styles.fallbackIcon}>
+                <AsIcon name="locate" size={24} color={DSColors.primary} />
+              </View>
               <Text style={styles.fallbackTitle}>Precisamos da sua localização</Text>
               <Text style={styles.fallbackBody}>
                 Ative a permissão de localização para ver o mapa da sua região.
               </Text>
-              <Pressable onPress={() => Linking.openSettings()} style={styles.fallbackButton}>
-                <Text style={styles.fallbackButtonText}>Abrir configurações</Text>
-              </Pressable>
+              <AsButton
+                label="Abrir configurações"
+                variant="primary"
+                onPress={() => Linking.openSettings()}
+                style={styles.fallbackButton}
+              />
             </>
           )}
           {status === 'error' && (
-            <Text style={styles.fallbackBody}>Não foi possível obter sua localização.</Text>
+            <>
+              <View style={styles.fallbackIcon}>
+                <AsIcon name="alert" size={24} color={DSColors.danger} />
+              </View>
+              <Text style={styles.fallbackBody}>Não foi possível obter sua localização.</Text>
+            </>
           )}
         </View>
       )}
 
-      <SafeAreaView edges={['top']} style={styles.floatHead}>
-        <View style={styles.searchBar}>
+      <DiscoverOverlay
+        user={user}
+        searchInput={
           <TextInput
             style={styles.searchInput}
             placeholder="Esporte, local ou racha"
             placeholderTextColor={DSColors.inkSecondary}
+            accessibilityLabel="Buscar eventos"
             value={query}
             onChangeText={setQuery}
             returnKeyType="search"
             autoCorrect={false}
           />
-          {user?.role === 'organize' && (
-            <Pressable
-              onPress={() => router.push('/create-event')}
-              style={styles.createButton}
-              accessibilityRole="button"
-              accessibilityLabel="Criar evento">
-              <Text style={styles.createButtonText}>+ Criar</Text>
-            </Pressable>
-          )}
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials(user?.name ?? '')}</Text>
-          </View>
-          <Pressable
-            onPress={handleSignOut}
-            style={styles.signOut}
-            accessibilityRole="button"
-            accessibilityLabel="Sair da conta">
-            <Text style={styles.signOutText}>Sair</Text>
-          </Pressable>
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipsRow}>
-          {SPORT_KEYS.map((key) => (
-            <AsChip
-              key={key}
-              label={SPORT_TYPES[key].label}
-              dotColor={SPORT_TYPES[key].color}
-              active={activeSports.includes(key)}
-              onPress={() => toggleSport(key)}
-            />
-          ))}
-        </ScrollView>
-      </SafeAreaView>
-
-      <View style={[styles.sheet, { paddingBottom: BottomTabInset + DSSpacing[3] }]}>
-        <Text style={styles.sheetTitle}>Perto de você</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.cards}>
-          {markers.map((marker) => {
-            const sportInfo = SPORT_TYPES[marker.sport as SportKey];
-            const full = marker.participants_count >= marker.max_participants;
-            return (
-              <Pressable
-                key={marker.id}
-                onPress={() => focusMarker(marker.id)}
-                style={[styles.card, selectedId === marker.id && styles.cardSelected]}>
-                <View
-                  style={[
-                    styles.cardMedia,
-                    { backgroundColor: sportInfo?.color ?? DSColors.inkTertiary },
-                  ]}>
-                  <Text style={styles.cardBadge}>
-                    {marker.visibility === 'private'
-                      ? 'Privado'
-                      : full
-                        ? 'Lotado'
-                        : sportInfo?.label ?? marker.sport}
-                  </Text>
-                </View>
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTitle} numberOfLines={1}>
-                    {marker.title}
-                  </Text>
-                  <Text style={styles.cardSubtitle} numberOfLines={1}>
-                    {marker.location} · {formatDate(marker.starts_at)}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-          {markers.length === 0 && (
-            <Text style={styles.empty}>Nenhum resultado para esse filtro.</Text>
-          )}
-        </ScrollView>
-      </View>
+        }
+        activeSports={activeSports}
+        onToggleSport={toggleSport}
+        hasQuery={query.trim().length > 0}
+        markers={markers}
+        totalMarkers={allMarkers.length}
+        loading={loadingMarkers}
+        loadError={loadError}
+        onRetry={loadMarkers}
+        selectedId={selectedId}
+        onFocusMarker={focusMarker}
+        onSheetHeight={setSheetHeight}
+        filters={filters}
+        onFiltersChange={setFilters}
+        origin={region}
+      />
     </View>
   );
 }
 
 function createStyles(DSColors: DSColorSet) {
   return StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: DSColors.surface2,
-  },
-  mapFallback: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: DSSpacing[2],
-    padding: DSSpacing[6],
-  },
-  fallbackTitle: {
-    fontSize: DSText.lg,
-    fontWeight: '800',
-    color: DSColors.ink,
-    textAlign: 'center',
-  },
-  fallbackBody: {
-    fontSize: DSText.sm,
-    fontWeight: '600',
-    color: DSColors.inkSecondary,
-    textAlign: 'center',
-  },
-  fallbackButton: {
-    marginTop: DSSpacing[2],
-    paddingHorizontal: 18,
-    height: 44,
-    borderRadius: DSRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: DSColors.primary,
-  },
-  fallbackButtonText: {
-    color: DSColors.inverse,
-    fontWeight: '800',
-  },
-  floatHead: {
-    gap: DSSpacing[2],
-    paddingBottom: DSSpacing[2],
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    height: 48,
-    marginHorizontal: DSSpacing[4],
-    paddingHorizontal: 14,
-    borderRadius: DSRadius.lg + 3,
-    backgroundColor: DSColors.surface,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    fontSize: DSText.md,
-    fontWeight: '700',
-    color: DSColors.ink,
-  },
-  createButton: {
-    height: 32,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: DSColors.accent,
-  },
-  createButtonText: {
-    fontSize: DSText.xs,
-    fontWeight: '800',
-    color: DSColors.inverse,
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: DSColors.primaryTint,
-  },
-  avatarText: {
-    fontSize: DSText.xs,
-    fontWeight: '800',
-    color: DSColors.primary,
-  },
-  signOut: {
-    height: 32,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: DSColors.line,
-  },
-  signOutText: {
-    fontSize: DSText.xs,
-    fontWeight: '800',
-    color: DSColors.ink,
-  },
-  chipsRow: {
-    paddingHorizontal: DSSpacing[4],
-    gap: 8,
-  },
-  sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: DSColors.surface,
-    borderTopLeftRadius: DSRadius.xl,
-    borderTopRightRadius: DSRadius.xl,
-    paddingTop: DSSpacing[3],
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 6,
-  },
-  sheetTitle: {
-    fontSize: DSText.lg,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-    color: DSColors.ink,
-    paddingHorizontal: DSSpacing[4],
-    marginBottom: DSSpacing[2],
-  },
-  cards: {
-    paddingHorizontal: DSSpacing[4],
-    gap: 12,
-  },
-  card: {
-    width: 180,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: DSColors.surface,
-    borderWidth: 1,
-    borderColor: DSColors.line,
-  },
-  cardSelected: {
-    borderColor: DSColors.primary,
-    borderWidth: 2,
-  },
-  cardMedia: {
-    height: 64,
-    justifyContent: 'flex-start',
-    padding: 8,
-  },
-  cardBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    height: 20,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    color: DSColors.ink,
-    fontSize: DSText.xs,
-    fontWeight: '800',
-    lineHeight: 20,
-    overflow: 'hidden',
-  },
-  cardBody: {
-    padding: 10,
-    gap: 2,
-  },
-  cardTitle: {
-    fontSize: DSText.sm,
-    fontWeight: '800',
-    letterSpacing: -0.2,
-    color: DSColors.ink,
-  },
-  cardSubtitle: {
-    fontSize: DSText.xs,
-    fontWeight: '700',
-    color: DSColors.inkSecondary,
-  },
-  empty: {
-    fontSize: DSText.sm,
-    fontWeight: '600',
-    color: DSColors.inkSecondary,
-    paddingVertical: 20,
-  },
+    screen: {
+      flex: 1,
+      backgroundColor: DSColors.surface2,
+    },
+    mapFallback: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: DSSpacing[2],
+      padding: DSSpacing[6],
+    },
+    fallbackIcon: {
+      width: 56,
+      height: 56,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: DSColors.surface,
+      marginBottom: DSSpacing[1],
+    },
+    fallbackTitle: {
+      ...DSType.headline,
+      color: DSColors.ink,
+      textAlign: 'center',
+    },
+    fallbackBody: {
+      ...DSType.small,
+      color: DSColors.inkSecondary,
+      textAlign: 'center',
+      maxWidth: 320,
+    },
+    fallbackButton: {
+      marginTop: DSSpacing[2],
+    },
+    searchInput: {
+      ...DSType.body,
+      flex: 1,
+      height: '100%',
+      color: DSColors.ink,
+    },
   });
 }

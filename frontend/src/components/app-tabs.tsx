@@ -1,22 +1,20 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
-import { Colors } from '@/constants/theme';
-import { useTheme } from '@/providers/theme-context';
+import { useDSColors } from '@/providers/theme-context';
 
 export default function AppTabs() {
-  const { isDark } = useTheme();
-  const colors = Colors[isDark ? 'dark' : 'light'];
+  const colors = useDSColors();
 
   return (
     <NativeTabs
-      backgroundColor={colors.background}
-      indicatorColor={colors.backgroundElement}
-      labelStyle={{ selected: { color: colors.text } }}>
+      backgroundColor={colors.surface}
+      indicatorColor={colors.primaryTint}
+      labelStyle={{ selected: { color: colors.primary } }}>
       <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Mapa</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/home.png')}
-          renderingMode="template"
+          sf={{ default: 'map', selected: 'map.fill' }}
+          md={{ default: 'map', selected: 'map' }}
         />
       </NativeTabs.Trigger>
 

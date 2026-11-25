@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { DSColorsDark, DSColorsLight, type DSColorSet } from '@/constants/design-system';
@@ -37,12 +37,9 @@ function persistMode(mode: ThemeMode) {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemScheme = useColorScheme();
-  const [mode, setModeState] = useState<ThemeMode>('system');
-
-  useEffect(() => {
-    const stored = readStoredMode();
-    if (stored) setModeState(stored);
-  }, []);
+  // Web usa output "single" (só cliente), então ler o localStorage no
+  // inicializador é seguro e evita um render extra com o tema errado.
+  const [mode, setModeState] = useState<ThemeMode>(() => readStoredMode() ?? 'system');
 
   function setMode(next: ThemeMode) {
     setModeState(next);

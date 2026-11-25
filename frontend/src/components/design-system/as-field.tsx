@@ -8,8 +8,16 @@ import {
   type TextInputProps,
 } from 'react-native';
 
-import { DSRadius, DSText, type DSColorSet } from '@/constants/design-system';
+import {
+  DSLayout,
+  DSRadius,
+  DSSpacing,
+  DSType,
+  type DSColorSet,
+} from '@/constants/design-system';
 import { useDSColors } from '@/providers/theme-context';
+
+import { AsIcon } from './as-icon';
 
 export type AsFieldProps = TextInputProps & {
   label: string;
@@ -28,49 +36,72 @@ export function AsField({
   helpText,
   error,
   style,
+  onFocus,
+  onBlur,
+  editable,
   ...rest
 }: AsFieldProps) {
   const colors = useDSColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [hidden, setHidden] = useState(isPassword);
+  const [focused, setFocused] = useState(false);
+  const readOnly = editable === false;
 
   return (
     <View style={styles.field}>
       <View style={styles.labelRow}>
         <Text style={styles.label}>{label}</Text>
         {labelAction && (
-          <Pressable onPress={labelAction.onPress} hitSlop={8}>
+          <Pressable
+            onPress={labelAction.onPress}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={labelAction.label}>
             <Text style={styles.labelAction}>{labelAction.label}</Text>
           </Pressable>
         )}
       </View>
       <View style={styles.control}>
         <TextInput
+          accessibilityLabel={label}
+          accessibilityHint={error || helpText}
           style={[
             styles.input,
             isPassword && styles.inputWithAccessory,
-            error && styles.inputError,
+            focused && styles.inputFocused,
+            !!error && styles.inputError,
+            readOnly && styles.inputReadOnly,
             style,
           ]}
           placeholderTextColor={colors.inkTertiary}
           secureTextEntry={isPassword ? hidden : undefined}
+          editable={editable}
+          onFocus={(event) => {
+            setFocused(true);
+            onFocus?.(event);
+          }}
+          onBlur={(event) => {
+            setFocused(false);
+            onBlur?.(event);
+          }}
           {...rest}
         />
         {isPassword && (
           <Pressable
             onPress={() => setHidden((v) => !v)}
-            hitSlop={8}
             style={styles.accessory}
             accessibilityRole="button"
             accessibilityLabel={hidden ? 'Mostrar senha' : 'Ocultar senha'}>
-            <Text style={styles.accessoryLabel}>{hidden ? 'Mostrar' : 'Ocultar'}</Text>
+            <AsIcon name={hidden ? 'eye' : 'eyeOff'} size={20} color={colors.inkSecondary} />
           </Pressable>
         )}
       </View>
       {error ? (
-        <Text style={styles.error}>{error}</Text>
+        <Text style={styles.error} accessibilityLiveRegion="polite" accessibilityRole="alert">
+          {error}
+        </Text>
       ) : (
-        helpText && <Text style={styles.help}>{helpText}</Text>
+        !!helpText && <Text style={styles.help}>{helpText}</Text>
       )}
     </View>
   );
@@ -85,16 +116,14 @@ function createStyles(DSColors: DSColorSet) {
       flexDirection: 'row',
       alignItems: 'baseline',
       justifyContent: 'space-between',
-      gap: 8,
+      gap: DSSpacing[2],
     },
     label: {
-      fontSize: DSText.sm,
-      fontWeight: '800',
+      ...DSType.label,
       color: DSColors.ink,
     },
     labelAction: {
-      fontSize: DSText.sm,
-      fontWeight: '800',
+      ...DSType.labelStrong,
       color: DSColors.primary,
     },
     control: {
@@ -102,40 +131,44 @@ function createStyles(DSColors: DSColorSet) {
       justifyContent: 'center',
     },
     input: {
-      height: 48,
+      ...DSType.body,
+      minHeight: DSLayout.control,
       paddingHorizontal: 14,
-      borderRadius: DSRadius.md,
+      borderRadius: DSRadius.sm,
       borderWidth: 1,
       borderColor: DSColors.lineStrong,
       backgroundColor: DSColors.surface,
       color: DSColors.ink,
-      fontSize: DSText.md,
-      fontWeight: '600',
     },
     inputWithAccessory: {
-      paddingRight: 76,
+      paddingRight: DSLayout.touch + DSSpacing[1],
+    },
+    inputFocused: {
+      borderColor: DSColors.primary,
+      borderWidth: 2,
+      paddingHorizontal: 13,
     },
     inputError: {
       borderColor: DSColors.danger,
     },
-    accessory: {
-      position: 'absolute',
-      right: 10,
-      paddingHorizontal: 4,
-      paddingVertical: 4,
-    },
-    accessoryLabel: {
-      fontSize: DSText.xs,
-      fontWeight: '800',
+    inputReadOnly: {
+      backgroundColor: DSColors.surface2,
       color: DSColors.inkSecondary,
     },
+    accessory: {
+      position: 'absolute',
+      right: 2,
+      width: DSLayout.touch,
+      height: DSLayout.touch,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     help: {
-      fontSize: DSText.xs,
-      fontWeight: '600',
+      ...DSType.meta,
       color: DSColors.inkSecondary,
     },
     error: {
-      fontSize: DSText.xs,
+      ...DSType.meta,
       fontWeight: '700',
       color: DSColors.danger,
     },

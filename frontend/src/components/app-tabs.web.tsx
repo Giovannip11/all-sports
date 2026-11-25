@@ -3,14 +3,9 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
+import { AsIcon, type IconName } from '@/components/design-system/as-icon';
+import { DSLayout, DSRadius, DSSpacing, DSType, type DSColorSet } from '@/constants/design-system';
 import { useDSColors } from '@/providers/theme-context';
-
-const TAB_ICONS = {
-  home: '🏠',
-  events: '📅',
-  profile: '👤',
-} as const;
 
 export default function AppTabs() {
   return (
@@ -19,13 +14,13 @@ export default function AppTabs() {
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="home" href="/main" asChild>
-            <TabButton icon={TAB_ICONS.home}>Home</TabButton>
+            <TabButton icon="map">Mapa</TabButton>
           </TabTrigger>
           <TabTrigger name="events" href="/main/events" asChild>
-            <TabButton icon={TAB_ICONS.events}>Eventos</TabButton>
+            <TabButton icon="calendar">Eventos</TabButton>
           </TabTrigger>
           <TabTrigger name="profile" href="/main/profile" asChild>
-            <TabButton icon={TAB_ICONS.profile}>Perfil</TabButton>
+            <TabButton icon="user">Perfil</TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>
@@ -38,13 +33,22 @@ function TabButton({
   icon,
   isFocused,
   ...props
-}: TabTriggerSlotProps & { icon: string }) {
+}: TabTriggerSlotProps & { icon: IconName }) {
   const colors = useDSColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const color = isFocused ? colors.primary : colors.inkSecondary;
   return (
-    <Pressable {...props} style={styles.tabButton}>
-      <Text style={[styles.tabIcon, isFocused && styles.tabIconActive]}>{icon}</Text>
-      <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>{children}</Text>
+    <Pressable
+      {...props}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: !!isFocused }}
+      style={styles.tabButton}>
+      <View style={[styles.iconPill, isFocused && styles.iconPillActive]}>
+        <AsIcon name={icon} size={22} color={color} />
+      </View>
+      <Text style={[styles.tabLabel, { color }, isFocused && styles.tabLabelActive]}>
+        {children}
+      </Text>
     </Pressable>
   );
 }
@@ -72,34 +76,34 @@ function createStyles(DSColors: DSColorSet) {
     },
     barInner: {
       flexDirection: 'row',
-      maxWidth: 480,
+      maxWidth: DSLayout.maxForm,
       width: '100%',
       alignSelf: 'center',
-      paddingVertical: DSSpacing[2],
+      paddingVertical: DSSpacing[1],
       paddingHorizontal: DSSpacing[2],
     },
     tabButton: {
       flex: 1,
+      minHeight: 56,
       alignItems: 'center',
+      justifyContent: 'center',
       gap: 2,
-      paddingVertical: DSSpacing[1],
-      borderRadius: 10,
     },
-    tabIcon: {
-      fontSize: 18,
-      opacity: 0.55,
+    iconPill: {
+      width: 56,
+      height: 30,
+      borderRadius: DSRadius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    tabIconActive: {
-      opacity: 1,
+    iconPillActive: {
+      backgroundColor: DSColors.primaryTint,
     },
     tabLabel: {
-      fontSize: DSText.xs,
-      fontWeight: '700',
-      color: DSColors.inkSecondary,
+      ...DSType.meta,
     },
     tabLabelActive: {
-      color: DSColors.primary,
-      fontWeight: '800',
+      fontWeight: '700',
     },
   });
 }

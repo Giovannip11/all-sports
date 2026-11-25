@@ -28,7 +28,9 @@ def _ensure_organizer_plan(admin, user_id: str) -> None:
         .execute()
         .data
     )
-    if current and current[0]["plan_id"] == casual["id"]:
+    # Já em Casual ou acima (ids crescem com o tier): não rebaixa quem está no
+    # Intermediário/Arena — antes, criar um racha voltava a assinatura para Casual.
+    if current and current[0]["plan_id"] >= casual["id"]:
         return
     if current:
         admin.table("subscriptions").update({"plan_id": casual["id"]}).eq(
@@ -47,9 +49,21 @@ def _organizer_name(admin, organizer_id: str | None) -> str:
     return rows[0]["name"] if rows else ""
 
 
+def event_capacity(admin, row: dict) -> int:
+    """Vagas do evento. Torneios não têm max_participants: a capacidade é o
+    número máximo de equipes (tabela tournaments)."""
+    if row.get("max_participants") is not None:
+        return row["max_participants"]
+    rows = (
+        admin.table("tournaments").select("max_teams").eq("event_id", row["id"]).execute().data
+    )
+    return rows[0]["max_teams"] if rows else 0
+
+
 def _event_out(row: dict, admin, joined_ids: set[str], user_id: str) -> EventOut:
     return EventOut(
         id=row["id"],
+        kind=row.get("kind", "pickup"),
         organizer_id=row["organizer_id"],
         organizer_name=_organizer_name(admin, row["organizer_id"]),
         sport=sport_slug_for_id(row["sport_id"]),
@@ -59,7 +73,7 @@ def _event_out(row: dict, admin, joined_ids: set[str], user_id: str) -> EventOut
         latitude=row["latitude"],
         longitude=row["longitude"],
         starts_at=row["starts_at"],
-        max_participants=row["max_participants"],
+        max_participants=event_capacity(admin, row),
         visibility=row["visibility"],
         status=row["status"],
         participants_count=row["confirmed_count"],
@@ -255,6 +269,14 @@ def update_event(
     patch = payload.model_dump(exclude_none=True, exclude={"location"}, mode="json")
     if payload.location is not None:
         patch["location_name"] = payload.location
+    # O fim (obrigatório no banco) acompanha a nova data, mantendo a duração padrão.
+    if payload.starts_at is not None:
+        patch["ends_at"] = (payload.starts_at + DEFAULT_DURATION).isoformat()
+    if payload.max_participants is not None and payload.max_participants < row["confirmed_count"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Já há {row['confirmed_count']} inscritos; as vagas não podem ser menos que isso",
+        )
     if not patch:
         joined_ids = _joined_event_ids(admin, user.id)
         return _event_out(row, admin, joined_ids, user.id)
@@ -262,6 +284,10 @@ def update_event(
     try:
         updated = admin.table("events").update(patch).eq("id", event_id).execute().data[0]
     except Exception as exc:  # noqa: BLE001
+        if "starts_in_past" in str(exc):
+            raise HTTPException(
+                status_code=400, detail="A data do evento precisa ser no futuro"
+            ) from exc
         raise HTTPException(status_code=400, detail="Não foi possível atualizar o evento") from exc
 
     joined_ids = _joined_event_ids(admin, user.id)

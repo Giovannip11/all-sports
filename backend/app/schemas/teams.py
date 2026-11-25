@@ -15,6 +15,8 @@ class TeamMemberOut(BaseModel):
     user_id: str
     name: str
     events_played: int
+    # Nível informado no perfil para o esporte do evento (None = não informado).
+    skill_level: Literal["beginner", "intermediate", "advanced"] | None = None
 
 
 class TeamOut(BaseModel):

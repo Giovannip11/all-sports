@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, type LatLng } from 'react-native-maps';
 
-import { DSColors, DSRadius, DSSpacing, DSText } from '@/constants/design-system';
+import { DSRadius, DSType, type DSColorSet } from '@/constants/design-system';
+import { useDSColors } from '@/providers/theme-context';
 
 export type LocationPickerProps = {
   latitude: number;
@@ -12,6 +14,8 @@ export type LocationPickerProps = {
 /** Draggable-pin map for picking an event's coordinates — used both when
  * creating an event and when an organizer edits an existing one's location. */
 export function LocationPicker({ latitude, longitude, onChange }: LocationPickerProps) {
+  const colors = useDSColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   function handleMove(coordinate: LatLng) {
     onChange(coordinate.latitude, coordinate.longitude);
   }
@@ -41,15 +45,17 @@ export function LocationPicker({ latitude, longitude, onChange }: LocationPicker
   );
 }
 
-const styles = StyleSheet.create({
-  field: { gap: 6 },
-  label: { fontSize: DSText.sm, fontWeight: '800', color: DSColors.ink },
-  mapWrap: {
-    height: 220,
-    borderRadius: DSRadius.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: DSColors.line,
-  },
-  help: { fontSize: DSText.xs, fontWeight: '600', color: DSColors.inkSecondary },
-});
+function createStyles(colors: DSColorSet) {
+  return StyleSheet.create({
+    field: { gap: 6 },
+    label: { ...DSType.label, color: colors.ink },
+    mapWrap: {
+      height: 220,
+      borderRadius: DSRadius.md,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: colors.line,
+    },
+    help: { ...DSType.meta, color: colors.inkSecondary },
+  });
+}

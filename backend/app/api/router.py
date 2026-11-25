@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import auth, chat, events, health, map, notifications, teams
+from app.api.routes import auth, chat, events, health, map, notifications, teams, tournaments
 
 api_router = APIRouter()
 api_router.include_router(health.router)
@@ -10,3 +10,4 @@ api_router.include_router(map.router)
 api_router.include_router(notifications.router)
 api_router.include_router(teams.router)
 api_router.include_router(chat.router)
+api_router.include_router(tournaments.router)

@@ -8,6 +8,9 @@ from app.core.cpf import is_valid_cpf, normalize_cpf
 Role = Literal["practice", "organize"]
 Gender = Literal["masculino", "feminino", "outro", "prefiro_nao_informar"]
 Plan = Literal["gratuito", "casual", "intermediario", "arena"]
+# Mesmo enum `public.skill_level` do banco (tabela user_sports).
+SkillLevel = Literal["beginner", "intermediate", "advanced"]
+MAX_USER_SPORTS = 7
 
 MIN_SIGNUP_AGE = 16
 
@@ -24,6 +27,8 @@ class SignupRequest(BaseModel):
     role: Role = "practice"
     accepted_terms: bool
     location_consent: bool = False
+    # Slugs dos esportes que a pessoa pratica, em ordem de prioridade (RF05).
+    sports: list[str] = Field(default_factory=list, max_length=MAX_USER_SPORTS)
 
     @field_validator("accepted_terms")
     @classmethod
@@ -79,6 +84,26 @@ class ProfileUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=2)
     phone: str | None = Field(default=None, min_length=8)
     bio: str | None = Field(default=None, max_length=280)
+    # Tipo de conta (Jogador/Organizador). Fica no user_metadata, como no
+    # cadastro; create_event já lê dali, então a troca vale na hora.
+    role: Role | None = None
+
+
+class UserSportIn(BaseModel):
+    sport: str = Field(min_length=1)
+    skill_level: SkillLevel = "beginner"
+
+
+class UserSportsUpdate(BaseModel):
+    """Lista completa e ordenada: a posição na lista é a prioridade (1 = principal)."""
+
+    sports: list[UserSportIn] = Field(max_length=MAX_USER_SPORTS)
+
+
+class UserSportOut(BaseModel):
+    sport: str
+    skill_level: SkillLevel
+    position: int
 
 
 class PlanUpdateRequest(BaseModel):

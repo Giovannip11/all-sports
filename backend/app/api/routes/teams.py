@@ -33,6 +33,24 @@ def _events_played_counts(admin, user_ids: list[str]) -> dict[str, int]:
     return counts
 
 
+SKILL_RANK = {"beginner": 1, "intermediate": 2, "advanced": 3}
+
+
+def _skill_levels(admin, user_ids: list[str], sport_id: int | None) -> dict[str, str]:
+    """Nível que cada pessoa informou no perfil para o esporte do evento (EVENT-08)."""
+    if not user_ids or sport_id is None:
+        return {}
+    rows = (
+        admin.table("user_sports")
+        .select("user_id,skill_level")
+        .eq("sport_id", sport_id)
+        .in_("user_id", user_ids)
+        .execute()
+        .data
+    )
+    return {row["user_id"]: row["skill_level"] for row in rows}
+
+
 def _names_for(admin, user_ids: list[str]) -> dict[str, str]:
     if not user_ids:
         return {}
@@ -53,10 +71,13 @@ def _assign_snake(ordered_user_ids: list[str], team_count: int) -> list[list[str
     return teams
 
 
-def _build_draw_out(admin, draw: dict, team_rows: list[dict], teams: list[list[str]]) -> TeamDrawOut:
+def _build_draw_out(
+    admin, draw: dict, team_rows: list[dict], teams: list[list[str]], sport_id: int | None
+) -> TeamDrawOut:
     all_members = [uid for team in teams for uid in team]
     names = _names_for(admin, all_members)
     counts = _events_played_counts(admin, all_members)
+    levels = _skill_levels(admin, all_members, sport_id)
 
     return TeamDrawOut(
         id=draw["id"],
@@ -70,7 +91,10 @@ def _build_draw_out(admin, draw: dict, team_rows: list[dict], teams: list[list[s
                 position=team_row["position"],
                 members=[
                     TeamMemberOut(
-                        user_id=uid, name=names.get(uid, ""), events_played=counts.get(uid, 0)
+                        user_id=uid,
+                        name=names.get(uid, ""),
+                        events_played=counts.get(uid, 0),
+                        skill_level=levels.get(uid),
                     )
                     for uid in team
                 ],
@@ -131,7 +155,7 @@ def get_teams(event_id: str, token: str = Depends(bearer_token)) -> TeamDrawOut:
             [m["user_id"] for m in members_by_team if m["team_id"] == team_row["id"]]
         )
 
-    return _build_draw_out(admin, draw, team_rows, teams)
+    return _build_draw_out(admin, draw, team_rows, teams, row.get("sport_id"))
 
 
 @router.post("/{event_id}/teams/draw", response_model=TeamDrawOut)
@@ -169,8 +193,19 @@ def draw_teams(
         )
 
     if payload.mode == "balanced":
+        # Critério (EVENT-08): primeiro o nível informado no perfil para este
+        # esporte (sem nível conta como intermediário, igual ao RPC do banco);
+        # empate desempata pela experiência (eventos já jogados) e depois sorte.
+        # A ordem decrescente vai para o snake draft, que alterna os times.
+        levels = _skill_levels(admin, user_ids, row.get("sport_id"))
         counts = _events_played_counts(admin, user_ids)
-        ordered = sorted(user_ids, key=lambda uid: counts[uid], reverse=True)
+        shuffled = user_ids[:]
+        random.shuffle(shuffled)
+        ordered = sorted(
+            shuffled,
+            key=lambda uid: (SKILL_RANK.get(levels.get(uid, "intermediate"), 2), counts[uid]),
+            reverse=True,
+        )
     else:
         ordered = user_ids[:]
         random.shuffle(ordered)
@@ -210,4 +245,4 @@ def draw_teams(
     if members_payload:
         admin.table("event_team_members").insert(members_payload).execute()
 
-    return _build_draw_out(admin, draw, team_rows, teams)
+    return _build_draw_out(admin, draw, team_rows, teams, row.get("sport_id"))

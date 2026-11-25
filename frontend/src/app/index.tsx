@@ -1,12 +1,14 @@
-import { Image } from 'expo-image';
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AsBanner } from '@/components/design-system/as-banner';
 import { AsButton } from '@/components/design-system/as-button';
 import { AsField } from '@/components/design-system/as-field';
-import { DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
+import { AsColumn } from '@/components/design-system/as-layout';
+import { AsLogo } from '@/components/design-system/as-logo';
+import { DSSpacing, DSType, type DSColorSet } from '@/constants/design-system';
 import { ApiError, forgotPassword } from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
 import { useDSColors } from '@/providers/theme-context';
@@ -60,8 +62,9 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
+      // A troca para /main acontece sozinha: com a sessão ativa, o login deixa
+      // de estar disponível no Stack.Protected do _layout.
       await signIn(email.trim(), password);
-      router.replace('/main');
     } catch (error) {
       setFormError(error instanceof ApiError ? error.message : 'Erro inesperado ao entrar');
     } finally {
@@ -71,130 +74,125 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.screen}>
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.flex}>
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled">
-            <View style={styles.hero}>
-              <View style={styles.logo}>
-                <Image
-                  style={styles.logoMark}
-                  source={require('@/assets/images/expo-logo.png')}
-                />
-                <Text style={styles.logoText}>All Sports</Text>
+            <AsColumn width="form" style={styles.column}>
+              <View style={styles.hero}>
+                <AsLogo size={88} />
+                <Text style={styles.title} accessibilityRole="header">
+                  {resetMode ? 'Recuperar senha' : 'Bora jogar?'}
+                </Text>
+                <Text style={styles.lead}>
+                  {resetMode
+                    ? 'Informe o e-mail da sua conta e enviamos um link para criar uma nova senha.'
+                    : 'Encontre um racha, um grupo ou um campeonato perto de você — ou organize o seu.'}
+                </Text>
               </View>
-              <Text style={styles.lead}>
-                Encontre um racha, um grupo ou um campeonato perto de você — ou organize o seu.
-              </Text>
-            </View>
 
-            {formError ? (
-              <View style={styles.formError}>
-                <Text style={styles.formErrorText}>{formError}</Text>
-              </View>
-            ) : null}
+              {formError ? <AsBanner tone="error" message={formError} /> : null}
+              {resetMessage ? <AsBanner tone="success" message={resetMessage} /> : null}
 
-            {resetMessage ? (
-              <View style={styles.resetMessage}>
-                <Text style={styles.resetMessageText}>{resetMessage}</Text>
-              </View>
-            ) : null}
+              {resetMode ? (
+                <>
+                  <View style={styles.stack}>
+                    <AsField
+                      label="E-mail"
+                      placeholder="voce@email.com"
+                      autoComplete="email"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      value={email}
+                      onChangeText={(value) => {
+                        setEmail(value);
+                        if (emailError) setEmailError('');
+                      }}
+                      error={emailError}
+                    />
+                  </View>
 
-            {resetMode ? (
-              <>
-                <View style={styles.stack}>
-                  <AsField
-                    label="E-mail"
-                    placeholder="voce@email.com"
-                    autoComplete="email"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={email}
-                    onChangeText={(value) => {
-                      setEmail(value);
-                      if (emailError) setEmailError('');
-                    }}
-                    error={emailError}
+                  <AsButton
+                    label={resetSending ? 'Enviando...' : 'Enviar link de recuperação'}
+                    variant="primary"
+                    block
+                    loading={resetSending}
+                    onPress={handleForgotPassword}
                   />
-                </View>
 
-                <AsButton
-                  label={resetSending ? 'Enviando...' : 'Enviar link de recuperação'}
-                  variant="primary"
-                  block
-                  loading={resetSending}
-                  onPress={handleForgotPassword}
-                />
-
-                <Text style={styles.footer}>
-                  <Text
-                    style={styles.footerLink}
+                  <AsButton
+                    label="Voltar para o login"
+                    variant="ghost"
+                    icon="back"
+                    block
                     onPress={() => {
                       setResetMode(false);
                       setResetMessage('');
                     }}
-                    accessibilityRole="button">
-                    Voltar para o login
-                  </Text>
-                </Text>
-              </>
-            ) : (
-              <>
-                <View style={styles.stack}>
-                  <AsField
-                    label="E-mail"
-                    placeholder="voce@email.com"
-                    autoComplete="email"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={email}
-                    onChangeText={(value) => {
-                      setEmail(value);
-                      if (emailError) setEmailError('');
-                    }}
-                    error={emailError}
                   />
-                  <AsField
-                    label="Senha"
-                    placeholder="Sua senha"
-                    autoComplete="current-password"
-                    isPassword
-                    value={password}
-                    onChangeText={(value) => {
-                      setPassword(value);
-                      if (passwordError) setPasswordError('');
-                    }}
-                    error={passwordError}
-                    labelAction={{
-                      label: 'Esqueci',
-                      onPress: () => {
-                        setResetMode(true);
-                        setResetMessage('');
-                        setFormError('');
-                      },
-                    }}
+                </>
+              ) : (
+                <>
+                  <View style={styles.stack}>
+                    <AsField
+                      label="E-mail"
+                      placeholder="voce@email.com"
+                      autoComplete="email"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      value={email}
+                      onChangeText={(value) => {
+                        setEmail(value);
+                        if (emailError) setEmailError('');
+                      }}
+                      error={emailError}
+                    />
+                    <AsField
+                      label="Senha"
+                      placeholder="Sua senha"
+                      autoComplete="current-password"
+                      isPassword
+                      value={password}
+                      onChangeText={(value) => {
+                        setPassword(value);
+                        if (passwordError) setPasswordError('');
+                      }}
+                      onSubmitEditing={handleSubmit}
+                      returnKeyType="go"
+                      error={passwordError}
+                      labelAction={{
+                        label: 'Esqueci a senha',
+                        onPress: () => {
+                          setResetMode(true);
+                          setResetMessage('');
+                          setFormError('');
+                          setEmailError('');
+                          setPasswordError('');
+                        },
+                      }}
+                    />
+                  </View>
+
+                  <AsButton
+                    label={loading ? 'Entrando...' : 'Entrar'}
+                    variant="primary"
+                    block
+                    loading={loading}
+                    onPress={handleSubmit}
                   />
-                </View>
 
-                <AsButton
-                  label={loading ? 'Entrando...' : 'Entrar'}
-                  variant="primary"
-                  block
-                  loading={loading}
-                  onPress={handleSubmit}
-                />
-
-                <Text style={styles.footer}>
-                  Ainda não tem conta?{' '}
-                  <Link href="/signup" style={styles.footerLink}>
-                    Criar conta
-                  </Link>
-                </Text>
-              </>
-            )}
+                  <View style={styles.footer}>
+                    <Text style={styles.footerText}>Ainda não tem conta?</Text>
+                    <Link href="/signup" asChild>
+                      <AsButton label="Criar conta" variant="secondary" block />
+                    </Link>
+                  </View>
+                </>
+              )}
+            </AsColumn>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -204,83 +202,51 @@ export default function LoginScreen() {
 
 function createStyles(DSColors: DSColorSet) {
   return StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: DSColors.bg,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  flex: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: DSSpacing[6],
-    gap: DSSpacing[6],
-  },
-  hero: {
-    alignItems: 'center',
-    gap: DSSpacing[3],
-  },
-  logo: {
-    alignItems: 'center',
-    gap: DSSpacing[3],
-  },
-  logoMark: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: DSColors.primary,
-  },
-  logoText: {
-    fontSize: DSText['3xl'],
-    fontWeight: '800',
-    letterSpacing: -1.2,
-    color: DSColors.ink,
-  },
-  lead: {
-    maxWidth: 280,
-    textAlign: 'center',
-    fontSize: DSText.md,
-    lineHeight: 21,
-    color: DSColors.inkSecondary,
-  },
-  stack: {
-    gap: DSSpacing[3] + 2,
-  },
-  footer: {
-    textAlign: 'center',
-    fontSize: DSText.sm,
-    color: DSColors.inkSecondary,
-    fontWeight: '600',
-  },
-  footerLink: {
-    color: DSColors.primary,
-    fontWeight: '800',
-  },
-  formError: {
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: DSColors.dangerTint,
-  },
-  resetMessage: {
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: DSColors.primaryTint,
-  },
-  resetMessageText: {
-    fontSize: DSText.sm,
-    fontWeight: '700',
-    color: DSColors.primary,
-    textAlign: 'center',
-  },
-  formErrorText: {
-    fontSize: DSText.sm,
-    fontWeight: '700',
-    color: DSColors.danger,
-    textAlign: 'center',
-  },
+    screen: {
+      flex: 1,
+      backgroundColor: DSColors.surface,
+    },
+    flex: {
+      flex: 1,
+    },
+    content: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      padding: DSSpacing[6],
+    },
+    column: {
+      gap: DSSpacing[5],
+    },
+    hero: {
+      alignItems: 'flex-start',
+      gap: DSSpacing[3],
+      marginBottom: DSSpacing[2],
+    },
+    title: {
+      ...DSType.display,
+      color: DSColors.ink,
+      marginTop: DSSpacing[2],
+    },
+    lead: {
+      ...DSType.body,
+      color: DSColors.inkSecondary,
+      maxWidth: 360,
+    },
+    stack: {
+      gap: DSSpacing[4],
+    },
+    footer: {
+      gap: DSSpacing[2],
+      alignItems: 'stretch',
+      marginTop: DSSpacing[2],
+      paddingTop: DSSpacing[5],
+      borderTopWidth: 1,
+      borderTopColor: DSColors.line,
+    },
+    footerText: {
+      ...DSType.small,
+      color: DSColors.inkSecondary,
+      textAlign: 'center',
+    },
   });
 }

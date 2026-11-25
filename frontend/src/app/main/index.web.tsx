@@ -1,25 +1,39 @@
 // Web-only: react-native-maps has no web renderer, so web uses Leaflet +
 // OpenStreetMap tiles instead, fed by the same /map/markers endpoint and the
 // browser's real geolocation (via expo-location's web support).
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 
-import { AsChip } from '@/components/design-system/as-chip';
-import { DSColors, DSRadius, DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
+import { AsBanner } from '@/components/design-system/as-banner';
+import { AsButton } from '@/components/design-system/as-button';
+import { AsIcon } from '@/components/design-system/as-icon';
+import { DiscoverOverlay } from '@/components/discover/discover-overlay';
+import {
+  DSColors,
+  DSFonts,
+  DSRadius,
+  DSSpacing,
+  DSText,
+  DSType,
+  type DSColorSet,
+} from '@/constants/design-system';
 import { SPORT_TYPES, type SportKey } from '@/constants/discover';
-import { BottomTabInset } from '@/constants/theme';
 import { useUserLocation } from '@/hooks/use-user-location';
 import { ApiError, type ApiMapMarker } from '@/lib/api';
 import * as api from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
 import { useDSColors } from '@/providers/theme-context';
-
-const SPORT_KEYS = Object.keys(SPORT_TYPES) as SportKey[];
+import {
+  DEFAULT_FILTERS,
+  applyDiscovery,
+  priorityMap,
+  type DiscoveryFilters,
+} from '@/utils/discovery';
+import { formatShortDateTime } from '@/utils/format';
 
 function normalize(text: string) {
   return text
@@ -28,32 +42,17 @@ function normalize(text: string) {
     .toLowerCase();
 }
 
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '?';
-  return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase();
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 /** Teardrop pin as a plain Leaflet divIcon — no image assets to bundle. */
 function pinIcon(color: string, label: string, dashed: boolean, selected: boolean) {
-  const size = selected ? 34 : 26;
+  const size = selected ? 40 : 30;
   return L.divIcon({
     className: 'as-map-pin',
     html: `<div style="
         width:${size}px;height:${size}px;background:${color};
         border:2px ${dashed ? 'dashed' : 'solid'} #fff;border-radius:100% 100% 100% 2px;
         transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;
-        box-shadow:0 2px 4px rgba(0,0,0,0.28);">
-        <span style="transform:rotate(45deg);color:#fff;font-weight:800;font-size:${selected ? 14 : 11}px;">
+        box-shadow:0 2px 4px rgba(26,28,30,0.28);">
+        <span style="transform:rotate(45deg);color:#fff;font-weight:700;font-family:Manrope,system-ui,sans-serif;font-size:${selected ? 15 : 12}px;">
           ${label}
         </span>
       </div>`,
@@ -64,7 +63,7 @@ function pinIcon(color: string, label: string, dashed: boolean, selected: boolea
 
 const youIcon = L.divIcon({
   className: 'as-map-you',
-  html: `<div style="width:16px;height:16px;border-radius:8px;background:${DSColors.primary};border:3px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>`,
+  html: `<div style="width:16px;height:16px;border-radius:8px;background:${DSColors.you};border:3px solid #fff;box-shadow:0 0 0 6px rgba(26,115,232,0.2);"></div>`,
   iconSize: [16, 16],
   iconAnchor: [8, 8],
 });
@@ -78,24 +77,80 @@ function FlyTo({ center }: { center: [number, number] | null }) {
   return null;
 }
 
+/** Leaflet só percebe mudança de tamanho da janela; quando a área do mapa muda
+ * (altura da sheet), ele precisa recalcular, senão sobram faixas cinzas. */
+function ResizeWith({ size }: { size: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.invalidateSize();
+  }, [size, map]);
+  return null;
+}
+
+/** Recentraliza quando a posição do usuário muda (leitura mais precisa ou ajuste manual). */
+function FollowUser({
+  latitude,
+  longitude,
+  enabled,
+}: {
+  latitude: number;
+  longitude: number;
+  /** Falso quando a pessoa arrastou o ponto: ele já está onde ela soltou. */
+  enabled: boolean;
+}) {
+  const map = useMap();
+  const first = useRef(true);
+  useEffect(() => {
+    // A primeira posição já é o `center` inicial do MapContainer.
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (enabled) map.setView([latitude, longitude], map.getZoom(), { animate: true });
+  }, [latitude, longitude, enabled, map]);
+  return null;
+}
+
+function formatAccuracy(meters: number) {
+  return meters >= 1000
+    ? `${(meters / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km`
+    : `${meters} m`;
+}
+
+/** Acima disso o ponto azul provavelmente está longe de onde a pessoa está. */
+const IMPRECISE_M = 300;
+
 export default function DiscoverScreen() {
-  const { user, signOut, accessToken } = useAuth();
-  const { region, status, retry } = useUserLocation();
+  const { user, accessToken, mySports } = useAuth();
+  const [filters, setFilters] = useState<DiscoveryFilters>(DEFAULT_FILTERS);
+  const { region, status, accuracy, isManual, retry, setManualLocation } = useUserLocation();
   const themeColors = useDSColors();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
   const [activeSports, setActiveSports] = useState<SportKey[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [allMarkers, setAllMarkers] = useState<ApiMapMarker[]>([]);
-  const [flySeq, setFlySeq] = useState(0);
-  const flyTarget = useRef<[number, number] | null>(null);
+  const [loadingMarkers, setLoadingMarkers] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
+  // O mapa termina onde a sheet começa (menos a curva do topo dela); antes o
+  // centro — e o ponto azul — ficava escondido atrás da sheet.
+  const [sheetHeight, setSheetHeight] = useState(0);
+  const mapBottom = Math.max(0, sheetHeight - DSRadius.lg);
 
   const loadMarkers = useCallback(async () => {
-    if (!accessToken) return;
+    if (!accessToken) {
+      setLoadingMarkers(false);
+      return;
+    }
+    setLoadingMarkers(true);
     try {
       setAllMarkers(await api.listMapMarkers(accessToken));
+      setLoadError('');
     } catch (err) {
-      console.warn(err instanceof ApiError ? err.message : 'Erro ao carregar o mapa');
+      setLoadError(err instanceof ApiError ? err.message : 'Não foi possível carregar os eventos');
+    } finally {
+      setLoadingMarkers(false);
     }
   }, [accessToken]);
 
@@ -105,11 +160,6 @@ export default function DiscoverScreen() {
     }, [loadMarkers]),
   );
 
-  function handleSignOut() {
-    signOut();
-    router.replace('/');
-  }
-
   function toggleSport(sport: SportKey) {
     setActiveSports((current) =>
       current.includes(sport) ? current.filter((s) => s !== sport) : [...current, sport],
@@ -118,7 +168,7 @@ export default function DiscoverScreen() {
 
   const markers = useMemo(() => {
     const term = normalize(query.trim());
-    return allMarkers.filter((marker) => {
+    const matching = allMarkers.filter((marker) => {
       if (activeSports.length > 0 && !activeSports.includes(marker.sport as SportKey)) {
         return false;
       }
@@ -127,21 +177,22 @@ export default function DiscoverScreen() {
       const haystack = normalize(`${marker.title} ${marker.location} ${sportLabel}`);
       return haystack.includes(term);
     });
-  }, [activeSports, allMarkers, query]);
+    // Data/horário/distância + esportes preferidos primeiro (DISC-03/DISC-04).
+    return applyDiscovery(matching, filters, region, priorityMap(mySports));
+  }, [activeSports, allMarkers, query, filters, region, mySports]);
 
   function focusMarker(id: string) {
     setSelectedId(id);
     const marker = markers.find((m) => m.id === id);
     if (!marker) return;
-    flyTarget.current = [marker.latitude, marker.longitude];
-    // Force a new array identity so FlyTo's effect re-runs even for the same marker.
-    setFlySeq((n) => n + 1);
+    // A new array identity makes FlyTo's effect re-run even for the same marker.
+    setFlyTarget([marker.latitude, marker.longitude]);
   }
 
   return (
     <View style={styles.screen}>
       {region ? (
-        <View style={StyleSheet.absoluteFill}>
+        <View style={[styles.mapArea, { bottom: mapBottom }]}>
           <MapContainer
             center={[region.latitude, region.longitude]}
             zoom={15}
@@ -151,13 +202,46 @@ export default function DiscoverScreen() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
-            <FlyTo key={flySeq} center={flyTarget.current} />
-            <Marker position={[region.latitude, region.longitude]} icon={youIcon} />
+            <FlyTo center={flyTarget} />
+            <ResizeWith size={mapBottom} />
+            <FollowUser
+              latitude={region.latitude}
+              longitude={region.longitude}
+              enabled={!isManual}
+            />
+            {accuracy !== null && accuracy > 30 && (
+              <Circle
+                center={[region.latitude, region.longitude]}
+                radius={accuracy}
+                pathOptions={{
+                  color: DSColors.you,
+                  weight: 1,
+                  fillColor: DSColors.you,
+                  fillOpacity: 0.08,
+                }}
+              />
+            )}
+            {/* Arrastável: se o navegador errar o lugar, a pessoa corrige à mão. */}
+            <Marker
+              position={[region.latitude, region.longitude]}
+              icon={youIcon}
+              draggable
+              title="Você está aqui (arraste para corrigir)"
+              eventHandlers={{
+                dragend: (e) => {
+                  const { lat, lng } = (e.target as L.Marker).getLatLng();
+                  setManualLocation({ latitude: lat, longitude: lng });
+                },
+              }}
+            />
             {markers.map((marker) => {
               const sportInfo = SPORT_TYPES[marker.sport as SportKey];
               return (
                 <Marker
                   key={marker.id}
+                  // Texto alternativo do pin (leitor de tela e dica ao passar o mouse).
+                  title={`${sportInfo?.label ?? marker.sport}: ${marker.title}`}
+                  alt={`${sportInfo?.label ?? marker.sport}: ${marker.title}`}
                   position={[marker.latitude, marker.longitude]}
                   icon={pinIcon(
                     sportInfo?.color ?? DSColors.inkTertiary,
@@ -169,7 +253,7 @@ export default function DiscoverScreen() {
                   <Popup>
                     <strong>{marker.title}</strong>
                     <br />
-                    {marker.location} · {formatDate(marker.starts_at)}
+                    {marker.location} · {formatShortDateTime(marker.starts_at)}
                   </Popup>
                 </Marker>
               );
@@ -177,120 +261,91 @@ export default function DiscoverScreen() {
           </MapContainer>
         </View>
       ) : (
-        <View style={styles.mapFallback}>
-          {status === 'loading' && <ActivityIndicator color={DSColors.primary} />}
+        <View style={[styles.mapFallback, { bottom: mapBottom }]}>
+          {status === 'loading' && (
+            <>
+              <ActivityIndicator color={themeColors.primary} />
+              <Text style={styles.fallbackBody}>Procurando sua localização...</Text>
+            </>
+          )}
           {status === 'denied' && (
             <>
+              <View style={styles.fallbackIcon}>
+                <AsIcon name="locate" size={24} color={themeColors.primary} />
+              </View>
               <Text style={styles.fallbackTitle}>Precisamos da sua localização</Text>
               <Text style={styles.fallbackBody}>
                 Permita o acesso à localização nas configurações do navegador (ícone de cadeado na
                 barra de endereço) para ver o mapa da sua região.
               </Text>
-              <Pressable onPress={retry} style={styles.fallbackButton}>
-                <Text style={styles.fallbackButtonText}>Tentar novamente</Text>
-              </Pressable>
+              <AsButton
+                label="Tentar novamente"
+                icon="refresh"
+                variant="primary"
+                onPress={retry}
+                style={styles.fallbackButton}
+              />
             </>
           )}
           {status === 'error' && (
             <>
+              <View style={styles.fallbackIcon}>
+                <AsIcon name="alert" size={24} color={themeColors.danger} />
+              </View>
               <Text style={styles.fallbackBody}>Não foi possível obter sua localização.</Text>
-              <Pressable onPress={retry} style={styles.fallbackButton}>
-                <Text style={styles.fallbackButtonText}>Tentar novamente</Text>
-              </Pressable>
+              <AsButton
+                label="Tentar novamente"
+                icon="refresh"
+                variant="primary"
+                onPress={retry}
+                style={styles.fallbackButton}
+              />
             </>
           )}
         </View>
       )}
 
-      <SafeAreaView edges={['top']} style={styles.floatHead} pointerEvents="box-none">
-        <View style={styles.searchBar}>
+      <DiscoverOverlay
+        user={user}
+        searchInput={
           <TextInputWeb
             placeholder="Esporte, local ou racha"
             value={query}
             onChangeText={setQuery}
           />
-          {user?.role === 'organize' && (
-            <Pressable
-              onPress={() => router.push('/create-event')}
-              style={styles.createButton}
-              accessibilityRole="button"
-              accessibilityLabel="Criar evento">
-              <Text style={styles.createButtonText}>+ Criar</Text>
-            </Pressable>
-          )}
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials(user?.name ?? '')}</Text>
-          </View>
-          <Pressable
-            onPress={handleSignOut}
-            style={styles.signOut}
-            accessibilityRole="button"
-            accessibilityLabel="Sair da conta">
-            <Text style={styles.signOutText}>Sair</Text>
-          </Pressable>
-        </View>
+        }
+        activeSports={activeSports}
+        onToggleSport={toggleSport}
+        hasQuery={query.trim().length > 0}
+        markers={markers}
+        totalMarkers={allMarkers.length}
+        loading={loadingMarkers}
+        loadError={loadError}
+        onRetry={loadMarkers}
+        selectedId={selectedId}
+        onFocusMarker={focusMarker}
+        onSheetHeight={setSheetHeight}
+        filters={filters}
+        onFiltersChange={setFilters}
+        origin={region}
+      />
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipsRow}>
-          {SPORT_KEYS.map((key) => (
-            <AsChip
-              key={key}
-              label={SPORT_TYPES[key].label}
-              dotColor={SPORT_TYPES[key].color}
-              active={activeSports.includes(key)}
-              onPress={() => toggleSport(key)}
+      {region && (isManual || (accuracy !== null && accuracy > IMPRECISE_M)) && (
+        <View style={styles.locationNotice} pointerEvents="box-none">
+          {isManual ? (
+            <AsBanner
+              tone="info"
+              message="Usando a posição que você marcou no mapa."
+              action={{ label: 'Usar do aparelho', onPress: retry }}
             />
-          ))}
-        </ScrollView>
-      </SafeAreaView>
-
-      <View
-        style={[styles.sheet, { paddingBottom: BottomTabInset + DSSpacing[3] }]}
-        pointerEvents="box-none">
-        <Text style={styles.sheetTitle}>Perto de você</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.cards}>
-          {markers.map((marker) => {
-            const sportInfo = SPORT_TYPES[marker.sport as SportKey];
-            const full = marker.participants_count >= marker.max_participants;
-            return (
-              <Pressable
-                key={marker.id}
-                onPress={() => focusMarker(marker.id)}
-                style={[styles.card, selectedId === marker.id && styles.cardSelected]}>
-                <View
-                  style={[
-                    styles.cardMedia,
-                    { backgroundColor: sportInfo?.color ?? DSColors.inkTertiary },
-                  ]}>
-                  <Text style={styles.cardBadge}>
-                    {marker.visibility === 'private'
-                      ? 'Privado'
-                      : full
-                        ? 'Lotado'
-                        : (sportInfo?.label ?? marker.sport)}
-                  </Text>
-                </View>
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTitle} numberOfLines={1}>
-                    {marker.title}
-                  </Text>
-                  <Text style={styles.cardSubtitle} numberOfLines={1}>
-                    {marker.location} · {formatDate(marker.starts_at)}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-          {markers.length === 0 && (
-            <Text style={styles.empty}>Nenhum resultado para esse filtro.</Text>
+          ) : (
+            <AsBanner
+              tone="warning"
+              message={`Localização aproximada (±${formatAccuracy(accuracy ?? 0)}). Arraste o ponto azul até onde você está.`}
+            />
           )}
-        </ScrollView>
-      </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -309,14 +364,18 @@ function TextInputWeb({
   const colors = useDSColors();
   return (
     <input
+      type="search"
+      aria-label="Buscar eventos"
       style={{
         flex: 1,
+        minWidth: 0,
         height: '100%',
         border: 'none',
         outline: 'none',
         background: 'transparent',
+        fontFamily: DSFonts.body,
         fontSize: DSText.md,
-        fontWeight: 700,
+        fontWeight: 500,
         color: colors.ink,
       }}
       placeholder={placeholder}
@@ -326,187 +385,60 @@ function TextInputWeb({
   );
 }
 
-function createStyles(DSColors: DSColorSet) {
+function createStyles(colors: DSColorSet) {
   return StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: DSColors.surface2,
-  },
-  mapFallback: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: DSSpacing[2],
-    padding: DSSpacing[6],
-  },
-  fallbackTitle: {
-    fontSize: DSText.lg,
-    fontWeight: '800',
-    color: DSColors.ink,
-    textAlign: 'center',
-  },
-  fallbackBody: {
-    fontSize: DSText.sm,
-    fontWeight: '600',
-    color: DSColors.inkSecondary,
-    textAlign: 'center',
-  },
-  fallbackButton: {
-    marginTop: DSSpacing[2],
-    paddingHorizontal: 18,
-    height: 44,
-    borderRadius: DSRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: DSColors.primary,
-  },
-  fallbackButtonText: {
-    color: DSColors.inverse,
-    fontWeight: '800',
-  },
-  floatHead: {
-    gap: DSSpacing[2],
-    paddingBottom: DSSpacing[2],
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    height: 48,
-    marginHorizontal: DSSpacing[4],
-    paddingHorizontal: 14,
-    borderRadius: DSRadius.lg + 3,
-    backgroundColor: DSColors.surface,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  createButton: {
-    height: 32,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: DSColors.accent,
-  },
-  createButtonText: {
-    fontSize: DSText.xs,
-    fontWeight: '800',
-    color: DSColors.inverse,
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: DSColors.primaryTint,
-  },
-  avatarText: {
-    fontSize: DSText.xs,
-    fontWeight: '800',
-    color: DSColors.primary,
-  },
-  signOut: {
-    height: 32,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: DSColors.line,
-  },
-  signOutText: {
-    fontSize: DSText.xs,
-    fontWeight: '800',
-    color: DSColors.ink,
-  },
-  chipsRow: {
-    paddingHorizontal: DSSpacing[4],
-    gap: 8,
-  },
-  sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: DSColors.surface,
-    borderTopLeftRadius: DSRadius.xl,
-    borderTopRightRadius: DSRadius.xl,
-    paddingTop: DSSpacing[3],
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 6,
-  },
-  sheetTitle: {
-    fontSize: DSText.lg,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-    color: DSColors.ink,
-    paddingHorizontal: DSSpacing[4],
-    marginBottom: DSSpacing[2],
-  },
-  cards: {
-    paddingHorizontal: DSSpacing[4],
-    gap: 12,
-  },
-  card: {
-    width: 180,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: DSColors.surface,
-    borderWidth: 1,
-    borderColor: DSColors.line,
-  },
-  cardSelected: {
-    borderColor: DSColors.primary,
-    borderWidth: 2,
-  },
-  cardMedia: {
-    height: 64,
-    justifyContent: 'flex-start',
-    padding: 8,
-  },
-  cardBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    height: 20,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    color: DSColors.ink,
-    fontSize: DSText.xs,
-    fontWeight: '800',
-    lineHeight: 20,
-    overflow: 'hidden',
-  },
-  cardBody: {
-    padding: 10,
-    gap: 2,
-  },
-  cardTitle: {
-    fontSize: DSText.sm,
-    fontWeight: '800',
-    letterSpacing: -0.2,
-    color: DSColors.ink,
-  },
-  cardSubtitle: {
-    fontSize: DSText.xs,
-    fontWeight: '700',
-    color: DSColors.inkSecondary,
-  },
-  empty: {
-    fontSize: DSText.sm,
-    fontWeight: '600',
-    color: DSColors.inkSecondary,
-    paddingVertical: 20,
-  },
+    screen: {
+      flex: 1,
+      backgroundColor: colors.surface2,
+    },
+    mapArea: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+    },
+    mapFallback: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: DSSpacing[2],
+      padding: DSSpacing[6],
+    },
+    fallbackIcon: {
+      width: 56,
+      height: 56,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+      marginBottom: DSSpacing[1],
+    },
+    fallbackTitle: {
+      ...DSType.headline,
+      color: colors.ink,
+      textAlign: 'center',
+    },
+    fallbackBody: {
+      ...DSType.small,
+      color: colors.inkSecondary,
+      textAlign: 'center',
+      maxWidth: 360,
+    },
+    fallbackButton: {
+      marginTop: DSSpacing[2],
+    },
+    locationNotice: {
+      position: 'absolute',
+      top: 124,
+      left: DSSpacing[4],
+      right: DSSpacing[4],
+      maxWidth: 560,
+      alignSelf: 'center',
+      marginHorizontal: 'auto',
+    },
   });
 }

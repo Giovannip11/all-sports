@@ -6,6 +6,7 @@ from supabase_auth.errors import AuthApiError
 
 from app.core.rate_limit import rate_limit_login, rate_limit_password_reset, rate_limit_signup
 from app.core.security import authenticated_user, bearer_token
+from app.core.sports import sport_id_for_slug, sport_slug_for_id
 from app.core.supabase import get_supabase_admin_client, get_supabase_client
 from app.schemas.auth import (
     ForgotPasswordRequest,
@@ -18,6 +19,9 @@ from app.schemas.auth import (
     SignupRequest,
     SignupResponse,
     UserOut,
+    UserSportIn,
+    UserSportOut,
+    UserSportsUpdate,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -44,6 +48,52 @@ def _user_out(user, role_fallback: Role = "practice") -> UserOut:
         country=metadata.get("country"),
         plan=metadata.get("plan", "gratuito"),
     )
+
+
+def _load_user_sports(admin, user_id: str) -> list[UserSportOut]:
+    rows = (
+        admin.table("user_sports")
+        .select("sport_id,skill_level,position")
+        .eq("user_id", user_id)
+        .order("position")
+        .execute()
+        .data
+    )
+    return [
+        UserSportOut(
+            sport=sport_slug_for_id(row["sport_id"]),
+            skill_level=row["skill_level"],
+            position=row["position"],
+        )
+        for row in rows
+    ]
+
+
+def _save_user_sports(admin, user_id: str, items: list[UserSportIn]) -> list[UserSportOut]:
+    """Substitui os esportes do usuário (tabela user_sports) pela lista dada,
+    na ordem recebida. Slugs desconhecidos e repetidos são recusados."""
+    rows: list[dict] = []
+    seen: set[int] = set()
+    for item in items:
+        sport_id = sport_id_for_slug(item.sport)
+        if sport_id is None:
+            raise HTTPException(status_code=400, detail=f"Esporte inválido: {item.sport}")
+        if sport_id in seen:
+            continue
+        seen.add(sport_id)
+        rows.append(
+            {
+                "user_id": user_id,
+                "sport_id": sport_id,
+                "skill_level": item.skill_level,
+                "position": len(rows) + 1,
+            }
+        )
+
+    admin.table("user_sports").delete().eq("user_id", user_id).execute()
+    if rows:
+        admin.table("user_sports").insert(rows).execute()
+    return _load_user_sports(admin, user_id)
 
 
 def _session_out(session) -> SessionOut:
@@ -87,6 +137,19 @@ def signup(payload: SignupRequest) -> SignupResponse:
 
     if result.user is None:
         raise HTTPException(status_code=400, detail="Não foi possível criar a conta")
+
+    # Esportes escolhidos no cadastro (antes eram validados no app e descartados).
+    # O perfil é criado por trigger no insert em auth.users, então já existe aqui.
+    # Falha aqui não impede a conta: a pessoa pode escolher de novo no perfil.
+    if payload.sports:
+        try:
+            _save_user_sports(
+                get_supabase_admin_client(),
+                result.user.id,
+                [UserSportIn(sport=slug) for slug in payload.sports],
+            )
+        except Exception:  # noqa: BLE001
+            pass
 
     if result.session is not None:
         return SignupResponse(
@@ -155,6 +218,21 @@ def update_me(payload: ProfileUpdateRequest, token: str = Depends(bearer_token))
     admin = get_supabase_admin_client()
     updated = admin.auth.admin.update_user_by_id(user.id, {"user_metadata": metadata})
     return _user_out(updated.user, role_fallback=metadata.get("role", "practice"))
+
+
+@router.get("/me/sports", response_model=list[UserSportOut])
+def get_my_sports(token: str = Depends(bearer_token)) -> list[UserSportOut]:
+    """Esportes de interesse do usuário, em ordem de prioridade, com o nível em cada um."""
+    user = authenticated_user(token)
+    return _load_user_sports(get_supabase_admin_client(), user.id)
+
+
+@router.put("/me/sports", response_model=list[UserSportOut])
+def put_my_sports(
+    payload: UserSportsUpdate, token: str = Depends(bearer_token)
+) -> list[UserSportOut]:
+    user = authenticated_user(token)
+    return _save_user_sports(get_supabase_admin_client(), user.id, payload.sports)
 
 
 @router.patch("/me/plan", response_model=UserOut)

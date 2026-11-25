@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { DSColors } from '@/constants/design-system';
+import { DSColors, DSFonts } from '@/constants/design-system';
 
 export type MarkerPinProps = {
   color: string;
@@ -10,7 +10,8 @@ export type MarkerPinProps = {
 };
 
 /** Bare pin visual for use as a react-native-maps <Marker> child — positioning is
- * handled by the Marker's `coordinate`/`anchor`, not by this component. */
+ * handled by the Marker's `coordinate`/`anchor`, not by this component.
+ * Cores fixas de propósito: o pin fica sobre o mapa, que não muda com o tema. */
 export function MarkerPin({ color, label, selected, dashed }: MarkerPinProps) {
   const size = selected ? 40 : 30;
 
@@ -27,7 +28,7 @@ export function MarkerPin({ color, label, selected, dashed }: MarkerPinProps) {
           },
           selected && styles.teardropSelected,
         ]}>
-        <Text style={[styles.label, { fontSize: selected ? 14 : 11 }]}>{label}</Text>
+        <Text style={[styles.label, { fontSize: selected ? 15 : 12 }]}>{label}</Text>
       </View>
     </View>
   );
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-45deg' }],
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: DSColors.shadow,
     shadowOpacity: 0.28,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -59,7 +60,8 @@ const styles = StyleSheet.create({
   },
   label: {
     color: DSColors.inverse,
-    fontWeight: '800',
+    fontFamily: DSFonts.body,
+    fontWeight: '700',
     transform: [{ rotate: '45deg' }],
   },
 });

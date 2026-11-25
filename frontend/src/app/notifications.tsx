@@ -3,22 +3,28 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { DSSpacing, DSText, type DSColorSet } from '@/constants/design-system';
+import { AsBanner } from '@/components/design-system/as-banner';
+import { AsButton } from '@/components/design-system/as-button';
+import { AsEmpty } from '@/components/design-system/as-empty';
+import { AsHeader } from '@/components/design-system/as-header';
+import { AsIcon, type IconName } from '@/components/design-system/as-icon';
+import { AsColumn } from '@/components/design-system/as-layout';
+import { DSRadius, DSSpacing, DSType, type DSColorSet } from '@/constants/design-system';
 import { ApiError, type ApiNotification } from '@/lib/api';
 import * as api from '@/lib/api';
 import { useAuth } from '@/providers/auth-context';
 import { useDSColors } from '@/providers/theme-context';
+import { formatRelative } from '@/utils/format';
 
-function formatRelative(iso: string) {
-  const date = new Date(iso);
-  const diffMs = Date.now() - date.getTime();
-  const diffMin = Math.round(diffMs / 60000);
-  if (diffMin < 1) return 'agora mesmo';
-  if (diffMin < 60) return `há ${diffMin} min`;
-  const diffHours = Math.round(diffMin / 60);
-  if (diffHours < 24) return `há ${diffHours} h`;
-  const diffDays = Math.round(diffHours / 24);
-  return `há ${diffDays} d`;
+/** Ícone pelo tipo da notificação (o tipo vem do backend como texto livre). */
+function iconFor(type: string): IconName {
+  const t = type.toLowerCase();
+  if (t.includes('cancel')) return 'close';
+  if (t.includes('chat') || t.includes('message')) return 'chat';
+  if (t.includes('team') || t.includes('draw')) return 'shuffle';
+  if (t.includes('join') || t.includes('confirm') || t.includes('presence')) return 'check';
+  if (t.includes('update') || t.includes('change')) return 'edit';
+  return 'bell';
 }
 
 export default function NotificationsScreen() {
@@ -52,15 +58,19 @@ export default function NotificationsScreen() {
   );
 
   async function handlePress(notification: ApiNotification) {
-    if (!accessToken || notification.read) return;
-    try {
-      await api.markNotificationRead(accessToken, notification.id);
-      setNotifications((current) =>
-        current.map((n) => (n.id === notification.id ? { ...n, read: true } : n)),
-      );
-    } catch {
-      // best-effort — UI stays usable even if marking as read fails
+    if (!accessToken) return;
+    if (!notification.read) {
+      try {
+        await api.markNotificationRead(accessToken, notification.id);
+        setNotifications((current) =>
+          current.map((n) => (n.id === notification.id ? { ...n, read: true } : n)),
+        );
+      } catch {
+        // best-effort — UI stays usable even if marking as read fails
+      }
     }
+    // Antes o toque só marcava como lida; agora também abre o evento do aviso.
+    if (notification.event_id) router.push(`/event/${notification.event_id}`);
   }
 
   async function handleMarkAllRead() {
@@ -77,50 +87,84 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.backButton}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar">
-          <Text style={styles.backLabel}>‹</Text>
-        </Pressable>
-        <Text style={styles.title}>Notificações</Text>
-        {hasUnread && (
-          <Pressable onPress={handleMarkAllRead} hitSlop={8}>
-            <Text style={styles.markAll}>Marcar todas</Text>
-          </Pressable>
-        )}
-      </View>
+      <AsHeader
+        title="Notificações"
+        bordered
+        right={
+          hasUnread ? (
+            <AsButton
+              label="Marcar todas"
+              accessibilityLabel="Marcar todas como lidas"
+              icon="check"
+              variant="ghost"
+              size="sm"
+              onPress={handleMarkAllRead}
+            />
+          ) : null
+        }
+      />
 
-      {error ? (
-        <View style={styles.formError}>
-          <Text style={styles.formErrorText}>{error}</Text>
-        </View>
-      ) : null}
-
-      {loading ? (
+      {loading && notifications.length === 0 ? (
         <View style={styles.centered}>
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.list}>
-          {notifications.length === 0 && (
-            <Text style={styles.empty}>Você não tem notificações.</Text>
-          )}
-          {notifications.map((notification) => (
-            <Pressable
-              key={notification.id}
-              style={[styles.row, !notification.read && styles.rowUnread]}
-              onPress={() => handlePress(notification)}>
-              {!notification.read && <View style={styles.dot} />}
-              <View style={styles.rowBody}>
-                <Text style={styles.message}>{notification.message}</Text>
-                <Text style={styles.time}>{formatRelative(notification.created_at)}</Text>
-              </View>
-            </Pressable>
-          ))}
+        <ScrollView contentContainerStyle={styles.content}>
+          <AsColumn style={styles.list}>
+            {error ? (
+              <AsBanner
+                tone="error"
+                message={error}
+                action={{ label: 'Tentar de novo', onPress: load }}
+              />
+            ) : null}
+
+            {!error && notifications.length === 0 && (
+              <AsEmpty
+                icon="bell"
+                title="Tudo em dia"
+                body="Avisos de inscrição, mudanças e cancelamentos de eventos aparecem aqui."
+              />
+            )}
+
+            {notifications.map((notification) => (
+              <Pressable
+                key={notification.id}
+                style={({ pressed }) => [
+                  styles.row,
+                  !notification.read && styles.rowUnread,
+                  pressed && styles.rowPressed,
+                ]}
+                onPress={() => handlePress(notification)}
+                accessibilityRole="button"
+                accessibilityLabel={`${notification.read ? '' : 'Não lida. '}${notification.title ? `${notification.title}. ` : ''}${notification.message}, ${formatRelative(notification.created_at)}`}
+                accessibilityHint={
+                  notification.event_id
+                    ? 'Abre o evento'
+                    : notification.read
+                      ? undefined
+                      : 'Marca como lida'
+                }>
+                <View style={[styles.icon, !notification.read && styles.iconUnread]}>
+                  <AsIcon
+                    name={iconFor(notification.type)}
+                    size={20}
+                    color={notification.read ? colors.inkSecondary : colors.primary}
+                  />
+                </View>
+                <View style={styles.rowBody}>
+                  {notification.title ? (
+                    <Text style={styles.titleText}>{notification.title}</Text>
+                  ) : null}
+                  <Text style={[styles.message, !notification.read && styles.messageUnread]}>
+                    {notification.message}
+                  </Text>
+                  <Text style={styles.time}>{formatRelative(notification.created_at)}</Text>
+                </View>
+                {!notification.read && <View style={styles.dot} />}
+              </Pressable>
+            ))}
+          </AsColumn>
         </ScrollView>
       )}
     </SafeAreaView>
@@ -129,76 +173,39 @@ export default function NotificationsScreen() {
 
 function createStyles(DSColors: DSColorSet) {
   return StyleSheet.create({
-  screen: { flex: 1, backgroundColor: DSColors.surface },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: DSSpacing[2],
-    minHeight: 56,
-    paddingHorizontal: DSSpacing[2],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-  },
-  backLabel: { fontSize: 24, fontWeight: '800', color: DSColors.ink },
-  title: {
-    flex: 1,
-    fontSize: DSText.xl,
-    fontWeight: '800',
-    letterSpacing: -0.6,
-    color: DSColors.ink,
-  },
-  markAll: {
-    fontSize: DSText.sm,
-    fontWeight: '800',
-    color: DSColors.primary,
-    marginRight: DSSpacing[2],
-  },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list: { padding: DSSpacing[4], gap: 4 },
-  empty: {
-    textAlign: 'center',
-    marginTop: DSSpacing[6],
-    fontSize: DSText.sm,
-    fontWeight: '600',
-    color: DSColors.inkSecondary,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-  },
-  rowUnread: {
-    backgroundColor: DSColors.primaryTint,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: DSColors.primary,
-    marginTop: 6,
-  },
-  rowBody: { flex: 1, gap: 2 },
-  message: { fontSize: DSText.sm, fontWeight: '600', color: DSColors.ink, lineHeight: 19 },
-  time: { fontSize: DSText.xs, fontWeight: '700', color: DSColors.inkSecondary },
-  formError: {
-    margin: DSSpacing[4],
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: DSColors.dangerTint,
-  },
-  formErrorText: {
-    fontSize: DSText.sm,
-    fontWeight: '700',
-    color: DSColors.danger,
-    textAlign: 'center',
-  },
+    screen: { flex: 1, backgroundColor: DSColors.surface },
+    centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    content: { padding: DSSpacing[4], paddingBottom: DSSpacing[7] },
+    list: { gap: DSSpacing[1] },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: DSSpacing[3],
+      padding: DSSpacing[3],
+      borderRadius: DSRadius.md,
+    },
+    rowUnread: { backgroundColor: DSColors.primaryTint },
+    rowPressed: { backgroundColor: DSColors.surface2 },
+    icon: {
+      width: 40,
+      height: 40,
+      borderRadius: DSRadius.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: DSColors.surface2,
+    },
+    iconUnread: { backgroundColor: DSColors.surface },
+    rowBody: { flex: 1, gap: 2 },
+    titleText: { ...DSType.labelStrong, color: DSColors.ink },
+    message: { ...DSType.small, color: DSColors.inkSecondary },
+    messageUnread: { color: DSColors.ink },
+    time: { ...DSType.meta, color: DSColors.inkSecondary },
+    dot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      marginTop: 6,
+      backgroundColor: DSColors.primary,
+    },
   });
 }

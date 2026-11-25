@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from app.api.routes.events import _joined_event_ids, _visible_events_for
+from app.api.routes.events import _joined_event_ids, _visible_events_for, event_capacity
 from app.core.security import authenticated_user, bearer_token
 from app.core.sports import sport_slug_for_id
 from app.core.supabase import get_supabase_admin_client
@@ -24,6 +24,7 @@ def list_map_markers(
     return [
         MapMarkerOut(
             id=row["id"],
+            kind=row.get("kind", "pickup"),
             sport=sport_slug_for_id(row["sport_id"]),
             title=row["title"],
             location=row["location_name"],
@@ -33,7 +34,7 @@ def list_map_markers(
             visibility=row["visibility"],
             status=row["status"],
             participants_count=row["confirmed_count"],
-            max_participants=row["max_participants"],
+            max_participants=event_capacity(admin, row),
             is_organizer=row["organizer_id"] == user.id,
             is_participant=row["id"] in joined_ids,
         )

@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { DSText, type DSColorSet } from '@/constants/design-system';
+import { DSRadius, DSSpacing, DSType, type DSColorSet } from '@/constants/design-system';
 import { useDSColors } from '@/providers/theme-context';
+
+import { AsIcon } from './as-icon';
 
 export type AsChipProps = {
   label: string;
@@ -19,10 +21,19 @@ export function AsChip({ label, active, onPress, dotColor }: AsChipProps) {
   return (
     <Pressable
       onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected: !!active }}
-      style={[styles.chip, active && styles.chipActive]}>
-      {dotColor && <View style={[styles.dot, { backgroundColor: dotColor }]} />}
+      hitSlop={{ top: 4, bottom: 4 }}
+      // Filtro liga/desliga: "checkbox" faz o leitor de tela dizer se está
+      // marcado (na web vira role=checkbox + aria-checked; "selected" em botão
+      // não é anunciado).
+      accessibilityRole="checkbox"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: !!active }}
+      style={({ pressed }) => [styles.chip, active && styles.chipActive, pressed && styles.pressed]}>
+      {active ? (
+        <AsIcon name="check" size={16} color={colors.primary} />
+      ) : (
+        dotColor && <View style={[styles.dot, { backgroundColor: dotColor }]} />
+      )}
       <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
     </Pressable>
   );
@@ -31,16 +42,19 @@ export function AsChip({ label, active, onPress, dotColor }: AsChipProps) {
 function createStyles(DSColors: DSColorSet) {
   return StyleSheet.create({
     chip: {
-      height: 34,
-      paddingHorizontal: 12,
-      borderRadius: 8,
+      height: 36,
+      paddingHorizontal: DSSpacing[3],
+      borderRadius: DSRadius.sm,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: 6,
       borderWidth: 1,
-      borderColor: DSColors.line,
+      borderColor: DSColors.lineStrong,
       backgroundColor: DSColors.surface,
+    },
+    pressed: {
+      backgroundColor: DSColors.surface2,
     },
     dot: {
       width: 8,
@@ -50,15 +64,14 @@ function createStyles(DSColors: DSColorSet) {
     chipActive: {
       backgroundColor: DSColors.primaryTint,
       borderColor: DSColors.primary,
-      borderWidth: 1.5,
     },
     label: {
-      fontSize: DSText.sm,
-      fontWeight: '800',
+      ...DSType.label,
       color: DSColors.ink,
     },
     labelActive: {
       color: DSColors.primary,
+      fontWeight: '700',
     },
   });
 }

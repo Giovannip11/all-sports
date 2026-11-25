@@ -40,8 +40,13 @@ class ParticipantOut(BaseModel):
     joined_at: datetime
 
 
+EventKind = Literal["pickup", "meetup", "tournament"]
+
+
 class EventOut(BaseModel):
     id: str
+    # "tournament" abre a tela de torneio; vagas/inscritos contam equipes.
+    kind: EventKind = "pickup"
     organizer_id: str
     organizer_name: str
     sport: str

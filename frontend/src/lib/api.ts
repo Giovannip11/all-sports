@@ -80,6 +80,7 @@ export function signup(input: {
   role: Role;
   accepted_terms: boolean;
   location_consent: boolean;
+  sports?: string[];
 }) {
   return request<{ user: ApiUser; session: ApiSession | null; message: string }>('/auth/signup', {
     method: 'POST',
@@ -109,12 +110,34 @@ export function me(accessToken: string) {
 
 export function updateProfile(
   accessToken: string,
-  patch: { name?: string; phone?: string; bio?: string },
+  patch: { name?: string; phone?: string; bio?: string; role?: Role },
 ) {
   return request<ApiUser>('/auth/me', {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify(patch),
+  });
+}
+
+export type SkillLevel = 'beginner' | 'intermediate' | 'advanced';
+
+/** Esporte de interesse com o nível; a ordem da lista é a prioridade (RF05). */
+export type ApiUserSport = { sport: string; skill_level: SkillLevel; position: number };
+
+export function getMySports(accessToken: string) {
+  return request<ApiUserSport[]>('/auth/me/sports', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function updateMySports(
+  accessToken: string,
+  sports: { sport: string; skill_level: SkillLevel }[],
+) {
+  return request<ApiUserSport[]>('/auth/me/sports', {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ sports }),
   });
 }
 
@@ -126,13 +149,21 @@ export function updatePlan(accessToken: string, plan: Plan) {
   });
 }
 
-export function uploadAvatar(
+export async function uploadAvatar(
   accessToken: string,
   file: { uri: string; name: string; type: string },
 ) {
   const formData = new FormData();
-  // RN's FormData accepts this file-shaped object directly; DOM lib types don't model it.
-  formData.append('file', file as unknown as Blob);
+  if (Platform.OS === 'web') {
+    // No navegador o FormData só aceita Blob/File: o objeto { uri, name, type }
+    // virava o texto "[object Object]" e o upload falhava. A uri do seletor de
+    // imagens na web é um blob:/data: URL, que dá para baixar como Blob.
+    const blob = await (await fetch(file.uri)).blob();
+    formData.append('file', new File([blob], file.name, { type: file.type || blob.type }));
+  } else {
+    // RN's FormData accepts this file-shaped object directly; DOM lib types don't model it.
+    formData.append('file', file as unknown as Blob);
+  }
 
   return request<ApiUser>('/auth/me/avatar', {
     method: 'POST',
@@ -155,8 +186,12 @@ export function deleteAccount(accessToken: string) {
 export type Visibility = 'public' | 'private';
 export type EventStatus = 'draft' | 'open' | 'full' | 'in_progress' | 'finished' | 'canceled';
 
+export type EventKind = 'pickup' | 'meetup' | 'tournament';
+
 export type ApiEvent = {
   id: string;
+  /** "tournament": vagas e inscritos contam equipes; abre a tela de torneio. */
+  kind: EventKind;
   organizer_id: string;
   organizer_name: string;
   sport: string;
@@ -261,6 +296,7 @@ export type ApiTeamMember = {
   user_id: string;
   name: string;
   events_played: number;
+  skill_level: SkillLevel | null;
 };
 
 export type ApiTeam = {
@@ -327,6 +363,7 @@ export function sendMessage(accessToken: string, eventId: string, body: string) 
 
 export type ApiMapMarker = {
   id: string;
+  kind: EventKind;
   sport: string;
   title: string;
   location: string;
@@ -344,6 +381,138 @@ export type ApiMapMarker = {
 export function listMapMarkers(accessToken: string, sport?: string) {
   const query = sport ? `?sport=${encodeURIComponent(sport)}` : '';
   return request<ApiMapMarker[]>(`/map/markers${query}`, { headers: authHeaders(accessToken) });
+}
+
+// ---------------------------------------------------------------------------
+// Torneios (TOUR-01)
+// ---------------------------------------------------------------------------
+
+export type TournamentTeamStatus = 'pending' | 'confirmed' | 'waitlisted' | 'rejected' | 'canceled';
+
+export type ApiTournamentTeam = {
+  id: string;
+  name: string;
+  status: TournamentTeamStatus;
+  captain_id: string | null;
+  captain_name: string;
+  is_mine: boolean;
+};
+
+export type ApiMatchTeam = { id: string; name: string };
+
+export type ApiMatch = {
+  id: string;
+  round: number;
+  position: number;
+  status: 'scheduled' | 'in_progress' | 'finished' | 'walkover' | 'canceled';
+  home: ApiMatchTeam | null;
+  away: ApiMatchTeam | null;
+  home_score: number | null;
+  away_score: number | null;
+  winner_team_id: string | null;
+};
+
+export type ApiTournament = {
+  id: string;
+  sport: string;
+  title: string;
+  description: string | null;
+  location: string;
+  latitude: number;
+  longitude: number;
+  starts_at: string;
+  status: EventStatus;
+  visibility: Visibility;
+  organizer_id: string | null;
+  organizer_name: string;
+  is_organizer: boolean;
+  max_teams: number;
+  confirmed_teams: number;
+  players_per_team_min: number;
+  players_per_team_max: number;
+  prize_description: string | null;
+  requires_approval: boolean;
+  teams: ApiTournamentTeam[];
+  my_team_id: string | null;
+  rounds: { round: number; name: string; matches: ApiMatch[] }[];
+  champion: ApiMatchTeam | null;
+};
+
+export type TournamentInput = {
+  sport: string;
+  title: string;
+  description?: string;
+  location: string;
+  latitude: number;
+  longitude: number;
+  starts_at: string;
+  max_teams: number;
+  players_per_team_min: number;
+  players_per_team_max: number;
+  prize_description?: string;
+  visibility: Visibility;
+};
+
+export function createTournament(accessToken: string, input: TournamentInput) {
+  return request<ApiTournament>('/tournaments', {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify(input),
+  });
+}
+
+export function getTournament(accessToken: string, id: string) {
+  return request<ApiTournament>(`/tournaments/${id}`, { headers: authHeaders(accessToken) });
+}
+
+export function registerTournamentTeam(accessToken: string, id: string, name: string) {
+  return request<ApiTournament>(`/tournaments/${id}/teams`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function cancelTournamentTeam(accessToken: string, teamId: string) {
+  return request<ApiTournament>(`/tournaments/teams/${teamId}/cancel`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+  });
+}
+
+export function decideTournamentTeam(accessToken: string, teamId: string, approve: boolean) {
+  return request<ApiTournament>(`/tournaments/teams/${teamId}/decision`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ approve }),
+  });
+}
+
+export function generateBracket(accessToken: string, id: string) {
+  return request<ApiTournament>(`/tournaments/${id}/bracket`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+  });
+}
+
+export function recordMatchResult(
+  accessToken: string,
+  id: string,
+  matchId: string,
+  result: { home_score: number; away_score: number; winner_team_id?: string | null },
+) {
+  return request<ApiTournament>(`/tournaments/${id}/matches/${matchId}`, {
+    method: 'PATCH',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify(result),
+  });
+}
+
+/** Rota da tela certa para um evento: torneio tem tela própria. */
+export function eventHref(event: { id: string; kind?: EventKind }) {
+  return event.kind === 'tournament'
+    ? (`/tournament/${event.id}` as const)
+    : (`/event/${event.id}` as const);
 }
 
 // ---------------------------------------------------------------------------

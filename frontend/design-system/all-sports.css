@@ -15,9 +15,11 @@
  * e ações circulares. A navegação fica na barra de baixo, separada dos filtros.
  * Itens de classificação ocupam uma linha: posição, nome, pontos.
  *
- * Tema: claro. As cores de interface vêm das variáveis.
- * Ação (botão, criar, interruptor) é laranja. Link, foco, seleção e o ponto
- * de “você” são azul.
+ * Identidade "Várzea". Tema: claro. As cores de interface vêm das variáveis.
+ * Ação, link, foco e seleção são verde gramado (--as-primary). Dourado de
+ * troféu (--as-accent) marca campeonato e destaque, sempre com texto ink.
+ * Azul (--as-location) é só o ponto de "você" no mapa.
+ * Fonte de verdade para o app: src/constants/design-system.ts.
  */
 
 /* ==========================================================================
@@ -26,28 +28,29 @@
 
 :root {
   --as-ink: #1a1c1e;
-  --as-ink-secondary: #5c6370;
-  --as-ink-tertiary: #8b919a;
+  --as-ink-secondary: #5a635f;
+  --as-ink-tertiary: #6b7470;
   --as-inverse: #ffffff;
 
-  --as-bg: #f5f6f7;
+  --as-bg: #f3f5f4;
   --as-surface: #ffffff;
-  --as-surface-2: #eef1f4;
-  --as-line: #e3e6ea;
-  --as-line-strong: #cfd4da;
+  --as-surface-2: #e9eeeb;
+  --as-line: #e1e6e3;
+  --as-line-strong: #c9d1cd;
 
-  --as-primary: #0052ff;
-  --as-primary-pressed: #0040cc;
-  --as-primary-tint: #e6eeff;
-  --as-primary-tint-2: #c7d9ff;
+  --as-primary: #0c6e52;
+  --as-primary-pressed: #095a43;
+  --as-primary-tint: #e3f1eb;
+  --as-primary-tint-2: #c3e2d4;
 
-  --as-accent: #ff5500;
-  --as-accent-pressed: #cc4400;
-  --as-accent-tint: #ffe9df;
+  --as-accent: #f2b400;
+  --as-accent-pressed: #d9a100;
+  --as-accent-tint: #fff4cc;
+  --as-on-accent: #1a1c1e;
 
-  --as-location: #0052ff;
-  --as-location-pressed: #0040cc;
-  --as-location-tint: #e6eeff;
+  --as-location: #1a73e8;
+  --as-location-pressed: #1559b8;
+  --as-location-tint: #e8f0fd;
 
   --as-event: #e23b32;
   --as-place: #1a73e8;
@@ -69,8 +72,8 @@
   --as-block-line: rgba(90, 72, 40, 0.08);
 
   --as-futebol: #0c6e52;
-  --as-corrida: #e06a12;
-  --as-volei: #d9a106;
+  --as-corrida: #c95a0c;
+  --as-volei: #b07f00;
   --as-basquete: #d24b32;
   --as-natacao: #1a73e8;
   --as-bike: #7a4eab;
@@ -78,15 +81,16 @@
   --as-tenis: #2f8f4e;
 
   --as-font: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --as-font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --as-font-mono: ui-monospace, sfmono-regular, menlo, consolas, monospace;
 
-  --as-text-xs: 11px;
-  --as-text-sm: 13px;
-  --as-text-md: 15px;
-  --as-text-lg: 18px;
-  --as-text-xl: 22px;
-  --as-text-2xl: 28px;
-  --as-text-3xl: 34px;
+  --as-text-xs: 12px;
+  --as-text-sm: 14px;
+  --as-text-md: 16px;
+  --as-text-lg: 20px;
+  --as-text-xl: 24px;
+  --as-text-2xl: 32px;
+  --as-text-3xl: 40px;
 
   --as-space-1: 4px;
   --as-space-2: 8px;
@@ -98,10 +102,10 @@
   --as-space-8: 40px;
   --as-space-9: 48px;
 
-  --as-radius-sm: 5px;
-  --as-radius-md: 7px;
-  --as-radius-lg: 9px;
-  --as-radius-xl: 14px;
+  --as-radius-sm: 6px;
+  --as-radius-md: 10px;
+  --as-radius-lg: 16px;
+  --as-radius-xl: 16px;
   --as-radius-pill: 999px;
 
   --as-shadow-1: 0 1px 2px rgba(26, 28, 30, 0.08), 0 2px 6px rgba(26, 28, 30, 0.06);
@@ -431,14 +435,14 @@ a.as-event-card {
 .as-btn--primary,
 button.as-btn.as-btn--primary,
 a.as-btn.as-btn--primary {
-  background: var(--as-accent);
+  background: var(--as-primary);
   color: var(--as-inverse);
 }
 
 .as-btn--primary:hover,
 button.as-btn.as-btn--primary:hover,
 a.as-btn.as-btn--primary:hover {
-  background: var(--as-accent-pressed);
+  background: var(--as-primary-pressed);
 }
 
 .as-btn--primary:active {
@@ -837,7 +841,7 @@ a.as-textlink:hover {
 }
 
 .as-switch.is-on {
-  background: var(--as-accent);
+  background: var(--as-primary);
 }
 
 .as-switch.is-on::after {
@@ -909,14 +913,14 @@ a.as-tab.as-tab--create {
   height: 48px;
   justify-self: center;
   border-radius: 12px;
-  background: var(--as-accent);
+  background: var(--as-primary);
   color: var(--as-inverse);
   box-shadow: var(--as-shadow-1);
 }
 
 .as-tab--create:hover,
 a.as-tab.as-tab--create:hover {
-  background: var(--as-accent-pressed);
+  background: var(--as-primary-pressed);
   color: var(--as-inverse);
 }
 
@@ -1648,11 +1652,11 @@ a.as-mini {
 }
 
 .as-action--go {
-  color: var(--as-accent);
+  color: var(--as-primary);
 }
 
 .as-action--go .as-action__circle {
-  background: var(--as-accent);
+  background: var(--as-primary);
   color: var(--as-inverse);
 }
 
